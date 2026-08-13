@@ -47,7 +47,7 @@ function render(){
  const h=category==="Home"&&!term?data[0]:null;
  hero.innerHTML=h?`<div class="hero"><span class="badge">${h.verification_status.toUpperCase()} · ${h.source_count} SOURCES</span><h1>${h.headline}</h1><p>${h.summary||""}</p><button class="read" data-open="${h.id}">Read full story →</button></div>`:"";
  const a=h?data.slice(1):data;
- listTitle.textContent=h&&a.length===0?"Latest Story":(category==="Home"?"Top Stories":category+" Stories");
+ listTitle.textContent=h&&a.length===0?"Latest Story":(category==="Home"?"Top Stories":category+" Stories");if(!a.length){grid.innerHTML='<div class="empty-state"><h3>No stories found</h3><p>Try another search term or select a different category.</p></div>';return;}
  grid.innerHTML=a.length?a.map(s=>`<article class="card"><span class="badge">${s.verification_status.toUpperCase()} · ${s.source_count} SOURCES</span><h3>${s.headline}</h3><p class="meta">${s.category}</p><p>${s.summary||""}</p><button class="read" data-open="${s.id}">Read story →</button></article>`).join(""):"";
 }
 async function openStory(id){
