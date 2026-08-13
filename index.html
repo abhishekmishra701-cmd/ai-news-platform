@@ -53,7 +53,7 @@ function render(){
 async function openStory(id){
  const r=await api("news_stories?id=eq."+encodeURIComponent(id)+"&select=*");if(!r.ok)return;
  const rows=await r.json(),s=rows[0];if(!s)return;
- article.innerHTML=`<button class="back" id="innerBack">← Back</button><p><span class="badge">${s.verification_status.toUpperCase()} · ${s.source_count} SOURCES</span></p><h1>${s.headline}</h1><p class="meta">${s.category}</p><div>${s.body||s.summary||""}</div>${s.correction_notice?`<p><strong>Correction:</strong> ${s.correction_notice}</p>`:""}`;
+ article.innerHTML=`<p><span class="badge">${s.verification_status.toUpperCase()} · ${s.source_count} SOURCES</span></p><h1>${s.headline}</h1><p class="meta">${s.category}</p><div>${s.body||s.summary||""}</div>${s.correction_notice?`<p><strong>Correction:</strong> ${s.correction_notice}</p>`:""}`;
  home.classList.add("hidden");detail.classList.remove("hidden");scrollTo(0,0);
 }
 function backHome(){detail.classList.add("hidden");home.classList.remove("hidden")}
