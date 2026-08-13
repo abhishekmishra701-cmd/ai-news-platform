@@ -57,7 +57,7 @@ async function openStory(id){
  home.classList.add("hidden");detail.classList.remove("hidden");scrollTo(0,0);
 }
 function backHome(){detail.classList.add("hidden");home.classList.remove("hidden")}
-document.addEventListener("click",e=>{if(e.target.dataset.cat){category=e.target.dataset.cat;q.value="";render()}if(e.target.dataset.open)openStory(e.target.dataset.open)});
+document.addEventListener("click",e=>{if(e.target.dataset.cat){category=e.target.dataset.cat;q.value="";detail.classList.add("hidden");home.classList.remove("hidden");render();scrollTo(0,0)}if(e.target.dataset.open)openStory(e.target.dataset.open)});
 document.querySelector("#search").onclick=render;q.onkeydown=e=>{if(e.key==="Enter")render()};back.onclick=backHome;load();
 </script>
 </body></html>
