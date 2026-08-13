@@ -42,7 +42,7 @@ async function load(){
 }
 function render(){
  nav.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.cat===category));
- let data=stories.filter(s=>category==="Home"||s.category===category);
+ let data=category==="Home"?stories:stories.filter(s=>s.category===category);
  const term=q.value.trim().toLowerCase();if(term)data=data.filter(s=>(s.headline+" "+(s.summary||"")+" "+s.category).toLowerCase().includes(term));
  const h=category==="Home"&&!term?data[0]:null;
  hero.innerHTML=h?`<div class="hero"><span class="badge">${h.verification_status.toUpperCase()} · ${h.source_count} SOURCES</span><h1>${h.headline}</h1><p>${h.summary||""}</p><button class="read" data-open="${h.id}">Read full story →</button></div>`:"";
