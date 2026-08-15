@@ -1,17 +1,19 @@
 name: Fix country selector filter
 on:
-  push:
-    branches: [feat/global-news-provenance-ui]
+  pull_request_target:
+    types: [synchronize, opened, reopened]
+    branches: [main]
 permissions:
   contents: write
 jobs:
   fix:
-    if: contains(github.event.head_commit.message, 'fix: country selector filter') == false
+    if: github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.head.ref, 'feat/global-news-provenance-ui')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feat/global-news-provenance-ui
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
       - name: Patch country filtering logic
         run: |
           python - <<'PY'
@@ -36,4 +38,4 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           git commit -m 'fix: country selector filter' || exit 0
-          git push origin HEAD:feat/global-news-provenance-ui
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
