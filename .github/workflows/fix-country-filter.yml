@@ -1,0 +1,39 @@
+name: Fix country selector filter
+on:
+  push:
+    branches: [feat/global-news-provenance-ui]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: contains(github.event.head_commit.message, 'fix: country selector filter') == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/global-news-provenance-ui
+      - name: Patch country filtering logic
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          old = "function filteredStories(){var data=stories.slice();if(mode==='country')return data.filter(function(s){return String(s.country||'').toLowerCase()==='india'});if(category!=='Home')data=data.filter(function(s){return String(s.category||'').toLowerCase()===category.toLowerCase()});"
+          new = "function filteredStories(){var data=stories.slice();if(mode==='country'&&selectedCountry==='All')data=data.filter(function(s){return String(s.country||'').toLowerCase()==='india'});if(category!=='Home')data=data.filter(function(s){return String(s.category||'').toLowerCase()===category.toLowerCase()});"
+          if old not in s:
+              raise SystemExit('target filtering code not found')
+          s = s.replace(old, new, 1)
+          old_title = "var title=mode==='country'?'🇮🇳 India Stories':selectedCountry!=='All'?flag(selectedCountry)+' '+selectedCountry+' Stories':region!=='All'?region+' Stories':category==='Home'?'Top Stories · Worldwide':category+' Stories';"
+          new_title = "var title=selectedCountry!=='All'?flag(selectedCountry)+' '+selectedCountry+' Stories':mode==='country'?'🇮🇳 India Stories':region!=='All'?region+' Stories':category==='Home'?'Top Stories · Worldwide':category+' Stories';"
+          if old_title not in s:
+              raise SystemExit('target title code not found')
+          s = s.replace(old_title, new_title, 1)
+          p.write_text(s)
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'fix: country selector filter' || exit 0
+          git push origin HEAD:feat/global-news-provenance-ui
