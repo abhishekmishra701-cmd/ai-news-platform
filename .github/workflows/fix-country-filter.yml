@@ -1,0 +1,44 @@
+name: Fix country selector filter
+on:
+  pull_request:
+    types: [synchronize, opened, reopened]
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.head.ref, 'feat/global-news-provenance-ui')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - name: Patch country filtering logic
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          old = "function filteredStories(){var data=stories.slice();if(mode==='country')return data.filter(function(s){return String(s.country||'').toLowerCase()==='india'});if(category!=='Home')data=data.filter(function(s){return String(s.category||'').toLowerCase()===category.toLowerCase()});"
+          new = "function filteredStories(){var data=stories.slice();if(mode==='country'&&selectedCountry==='All')data=data.filter(function(s){return String(s.country||'').toLowerCase()==='india'});if(category!=='Home')data=data.filter(function(s){return String(s.category||'').toLowerCase()===category.toLowerCase()});"
+          if old in s:
+              s = s.replace(old, new, 1)
+          old_title = "var title=mode==='country'?'🇮🇳 India Stories':selectedCountry!=='All'?flag(selectedCountry)+' '+selectedCountry+' Stories':region!=='All'?region+' Stories':category==='Home'?'Top Stories · Worldwide':category+' Stories';"
+          new_title = "var title=selectedCountry!=='All'?flag(selectedCountry)+' '+selectedCountry+' Stories':mode==='country'?'🇮🇳 India Stories':region!=='All'?region+' Stories':category==='Home'?'Top Stories · Worldwide':category+' Stories';"
+          if old_title in s:
+              s = s.replace(old_title, new_title, 1)
+          old_render = "function render(){nav.querySelectorAll('button').forEach(function(b){b.classList.remove('active')});var active=mode==='home'&&category==='Home'?nav.querySelector('[data-mode=\"home\"]'):mode==='country'?document.getElementById('myCountryTab'):nav.querySelector('[data-cat=\"'+CSS.escape(category)+'\"]');"
+          new_render = "function render(){var countryTab=document.getElementById('myCountryTab');if(countryTab)countryTab.textContent=selectedCountry!=='All'?flag(selectedCountry)+' '+selectedCountry:'🇮🇳 India';nav.querySelectorAll('button').forEach(function(b){b.classList.remove('active')});var active=mode==='home'&&category==='Home'?nav.querySelector('[data-mode=\"home\"]'):mode==='country'?countryTab:nav.querySelector('[data-cat=\"'+CSS.escape(category)+'\"]');"
+          if old_render not in s:
+              raise SystemExit('render target not found')
+          s = s.replace(old_render, new_render, 1)
+          p.write_text(s)
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'fix: sync country tab with selected country' || exit 0
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
