@@ -1,6 +1,6 @@
 name: Fix country selector filter
 on:
-  pull_request_target:
+  pull_request:
     types: [synchronize, opened, reopened]
     branches: [main]
 permissions:
@@ -20,6 +20,7 @@ jobs:
           from pathlib import Path
           p = Path('index.html')
           s = p.read_text()
+          old = "function filteredStories(){var data=stories.slice();if(mode==='country')return data.filter(function(s){return String(s.country||'').toLowerCase()==='india'});if(category!='Home')data=data.filter(function(s){return String(s.category||'').toLowerCase()===category.toLowerCase()});"
           old = "function filteredStories(){var data=stories.slice();if(mode==='country')return data.filter(function(s){return String(s.country||'').toLowerCase()==='india'});if(category!=='Home')data=data.filter(function(s){return String(s.category||'').toLowerCase()===category.toLowerCase()});"
           new = "function filteredStories(){var data=stories.slice();if(mode==='country'&&selectedCountry==='All')data=data.filter(function(s){return String(s.country||'').toLowerCase()==='india'});if(category!=='Home')data=data.filter(function(s){return String(s.category||'').toLowerCase()===category.toLowerCase()});"
           if old not in s:
