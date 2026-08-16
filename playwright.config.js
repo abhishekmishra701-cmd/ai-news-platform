@@ -1,24 +1,30 @@
 const { defineConfig, devices } = require('@playwright/test');
 
+const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:4173';
+
 module.exports = defineConfig({
   testDir: './tests/e2e',
-  timeout: 30000,
+  timeout: 30_000,
+  expect: { timeout: 7_000 },
   fullyParallel: true,
-  reporter: [['html', { open: 'never' }], ['list']],
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'list',
+  webServer: {
+    command: 'npx serve . -l 4173 --no-clipboard',
+    url: baseURL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 30_000,
+  },
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure'
-  },
-  webServer: {
-    command: 'npx serve . -l 4173',
-    url: 'http://127.0.0.1:4173',
-    reuseExistingServer: true,
-    timeout: 30000
+    video: 'retain-on-failure',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile-chrome', use: { ...devices['Pixel 5'] } }
-  ]
+    { name: 'mobile-chrome', use: { ...devices['Pixel 5'] } },
+  ],
 });
