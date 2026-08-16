@@ -1,69 +1,150 @@
 (()=>{
 'use strict';
-if(window.__GLOBAL_NEWS_STORY_READER_V4__)return;window.__GLOBAL_NEWS_STORY_READER_V4__=true;
-const U='https://nfqwnrmwyhcycjsfwqfl.supabase.co',K='sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl';
-const $=s=>document.querySelector(s),home=$('#home'),detail=$('#detail'),article=$('#article');if(!home||!detail||!article)return;
-const st=document.createElement('style');st.textContent=`#detail .detail-toolbar,#detail .back:not(.story-v4-back),#detail #back,#detail .story-v2-back-wrap,#detail #storyV2Back{display:none!important}.story-v4-wrap{max-width:980px;margin:0 auto}.story-v4-back{height:38px;background:#fff;color:#344054;border:1px solid #d0d5dd;border-radius:9px;padding:0 14px;font-weight:700;cursor:pointer;margin:0 0 18px}.story-v4{background:#fff;border:1px solid #e4e7ec;border-radius:20px;overflow:hidden;box-shadow:0 8px 30px rgba(16,24,40,.06)}.story-v4-head{padding:34px 38px 28px;border-bottom:1px solid #eef0f3}.story-v4-kicker{display:flex;gap:7px;flex-wrap:wrap}.story-v4-head h1{font-size:40px;line-height:1.12;margin:16px 0 12px;color:#101828}.story-v4-lead{font-size:17px;line-height:1.7;color:#475467;margin:0}.story-v4-section{padding:0 38px;margin-top:28px}.story-v4-section h2{font-size:19px;margin:0 0 12px;color:#101828}.story-v4-brief{background:#f8fafc;border:1px solid #e7ebf0;border-radius:15px;padding:20px 22px}.story-v4-label{font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.5px;color:#194185;margin-bottom:10px}.story-v4-brief ul,.story-v4-report ul{margin:0;padding-left:21px}.story-v4-brief li,.story-v4-report li{padding:7px 0;line-height:1.7;color:#344054}.story-v4-report{font-size:16px;line-height:1.85;color:#344054}.story-v4-report p{margin:0 0 16px}.story-v4-note{font-size:11px;color:#667085;margin:12px 0 14px;line-height:1.6}.story-v4-sources{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.story-v4-source{border:1px solid #e4e7ec;border-radius:13px;padding:16px}.story-v4-publisher{font-size:13px;font-weight:850}.story-v4-title{font-size:13px;font-weight:650;line-height:1.45;margin-top:7px}.story-v4-excerpt{font-size:12px;line-height:1.65;color:#667085;margin-top:9px}.story-v4-source a{display:inline-block;margin-top:11px;color:#2563eb;font-size:12px;font-weight:750;text-decoration:none}.story-v4-empty,.story-v4-loading{padding:14px;color:#667085;font-size:13px}.story-v4-error{padding:18px;border:1px solid #fedf89;border-radius:11px;background:#fffaeb;color:#b54708}@media(max-width:700px){.story-v4-head{padding:24px 20px}.story-v4-head h1{font-size:29px}.story-v4-section{padding:0 20px}.story-v4-sources{grid-template-columns:1fr}}`;document.head.appendChild(st);
-function dec(v){let s=String(v??'');for(let i=0;i<8;i++){const t=document.createElement('textarea');t.innerHTML=s;const d=t.value;if(d===s)break;s=d}return s}
-function esc(v){return dec(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function api(path,opt){return fetch(U+'/rest/v1/'+path,Object.assign({headers:{apikey:K,Authorization:'Bearer '+K,Accept:'application/json'}},opt||{}))}
-function brief(id){const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);return fetch(U+'/functions/v1/story-brief',{method:'POST',headers:{apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json'},body:JSON.stringify({story_id:id}),signal:c.signal}).finally(()=>clearTimeout(t))}
-function flag(c){return ({India:'🇮🇳',Bangladesh:'🇧🇩',Pakistan:'🇵🇰',China:'🇨🇳',Japan:'🇯🇵','South Korea':'🇰🇷',Indonesia:'🇮🇩',Singapore:'🇸🇬',Thailand:'🇹🇭',Vietnam:'🇻🇳',Malaysia:'🇲🇾',Philippines:'🇵🇭',France:'🇫🇷',Germany:'🇩🇪',Greece:'🇬🇷',Italy:'🇮🇹',Spain:'🇪🇸','United Kingdom':'🇬🇧','United States':'🇺🇸',Canada:'🇨🇦',Mexico:'🇲🇽',Brazil:'🇧🇷',Argentina:'🇦🇷',Australia:'🇦🇺','New Zealand':'🇳🇿','Saudi Arabia':'🇸🇦','United Arab Emirates':'🇦🇪',Israel:'🇮🇱',Iran:'🇮🇷',Iraq:'🇮🇶',Qatar:'🇶🇦','South Africa':'🇿🇦',Nigeria:'🇳🇬',Morocco:'🇲🇦',Ukraine:'🇺🇦',Russia:'🇷🇺',Poland:'🇵🇱',Belgium:'🇧🇪',Austria:'🇦🇹',Switzerland:'🇨🇭',Portugal:'🇵🇹',Netherlands:'🇳🇱',Norway:'🇳🇴',Ireland:'🇮🇪',Egypt:'🇪🇬',Türkiye:'🇹🇷'}[c]||'🌐')}
-function paragraphs(v){const t=dec(v).replace(/\r/g,'').trim();if(!t)return '';return t.split(/\n{2,}|\n|(?<=[.!?])\s+(?=[A-Z0-9“‘])/).map(x=>x.trim()).filter(Boolean).map(x=>`<p>${esc(x)}</p>`).join('')}
-function report(body,summary,points){const b=dec(body).trim(),s=dec(summary).trim(),p=(Array.isArray(points)?points:[]).map(dec).map(x=>x.trim()).filter(x=>x.length>20);if(b.length>=450&&b!==s)return {html:paragraphs(b),note:''};if(p.length)return {html:`<div class="story-v4-label">Source-grounded report</div><ul>${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`,note:'This report is synthesized only from source-grounded material available to the platform.'};return s?{html:paragraphs(s),note:'Only limited source material is currently available for this story.'}:{html:'<div class="story-v4-empty">A detailed report is not available yet.</div>',note:''}}
-function sources(a){if(!a.length)return '<div class="story-v4-empty">Source details are not available for this story yet.</div>';return a.map(x=>`<div class="story-v4-source"><div class="story-v4-publisher">${esc(x.publisher||'Source')}</div><div class="story-v4-title">${esc(x.title||'Original report')}</div>${x.excerpt?`<div class="story-v4-excerpt">${esc(x.excerpt)}</div>`:''}${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">Open original source →</a>`:''}</div>`).join('')}
-function goBack(){detail.classList.add('hidden');home.classList.remove('hidden');article.innerHTML='';scrollTo(0,0)}
-async function openStory(id){home.classList.add('hidden');detail.classList.remove('hidden');scrollTo(0,0);article.innerHTML='<div class="story-v4-wrap"><button class="story-v4-back">← Back to stories</button><div class="story-v4-loading">Opening story…</div></div>';article.querySelector('.story-v4-back').onclick=goBack;try{const r=await api('news_stories?id=eq.'+encodeURIComponent(id)+'&select=id,slug,headline,summary,body,category,country,verification_status,source_count,correction_notice');if(!r.ok)throw Error('Story could not be loaded.');const a=await r.json(),s=a[0];if(!s)throw Error('Story not found.');const status=dec(s.verification_status||'Unverified').toUpperCase(),country=dec(s.country||'Global');article.querySelector('.story-v4-loading').outerHTML=`<article class="story-v4"><header class="story-v4-head"><div class="story-v4-kicker"><span class="badge">${esc(status)}</span><span class="pill">${esc(s.source_count||0)} sources</span><span class="country-tag">${flag(country)} ${esc(country)}</span><span class="pill">${esc(s.category||'General')}</span></div><h1>${esc(s.headline||'')}</h1><p class="story-v4-lead">${esc(s.summary||'A source-grounded report compiled from available reporting.')}</p></header><section class="story-v4-section"><h2>Story Brief</h2><div id="v4Brief" class="story-v4-brief"><div class="story-v4-label">Source-grounded brief</div><div class="story-v4-loading">Preparing key points…</div></div></section><section class="story-v4-section"><h2>Full Report</h2><div id="v4Report" class="story-v4-report">${report(s.body,s.summary,[]).html}</div></section><section class="story-v4-section"><h2>Sources & attribution</h2><div id="v4Sources" class="story-v4-sources"><div class="story-v4-loading">Loading source attribution…</div></div></section>${s.correction_notice?`<div class="story-v4-note"><strong>Correction:</strong> ${esc(s.correction_notice)}</div>`:''}<div class="story-v4-note">Verification: <strong>${esc(status)}</strong>. The brief is grounded in source material available to the platform.</div></article>`;try{const br=await brief(id);if(!br.ok)throw Error();const d=await br.json(),p=Array.isArray(d?.brief?.points)?d.brief.points.filter(Boolean).slice(0,8):[],src=Array.isArray(d?.sources)?d.sources:[];$('#v4Brief').innerHTML=`<div class="story-v4-label">${esc(d?.brief?.label||'Source-grounded brief')}</div>${p.length?`<ul>${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<div class="story-v4-empty">A source-grounded brief is not available yet. Unsupported details will not be invented.</div>'}`;const rr=report(s.body,s.summary,p);$('#v4Report').innerHTML=rr.html+(rr.note?`<div class="story-v4-note">${esc(rr.note)}</div>`:'');$('#v4Sources').innerHTML=sources(src)}catch(_){$('#v4Brief').innerHTML='<div class="story-v4-label">Source-grounded brief</div><div class="story-v4-empty">The source brief is temporarily unavailable. Available story content remains visible.</div>';$('#v4Sources').innerHTML='<div class="story-v4-empty">Source details are temporarily unavailable.</div>'}}catch(e){article.innerHTML=`<div class="story-v4-wrap"><button class="story-v4-back">← Back to stories</button><div class="story-v4-error"><strong>Unable to prepare this story.</strong><br>${esc(e.message||'Please try again.')}</div></div>`;article.querySelector('.story-v4-back').onclick=goBack}}
 
-document.addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();openStory(b.dataset.open)},true);
+const SUPABASE_URL='https://nfqwnrmwyhcycjsfwqfl.supabase.co';
+const SUPABASE_KEY='sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl';
 
-// Deterministic country/region feed layer. The current database has many NULL country values; infer only from explicit country names/aliases in headline+summary and never invent facts.
-const COUNTRY_ALIASES={
-India:['india','indian','delhi','mumbai','kolkata','kerala','karnataka','jharkhand','rajasthan','goa','amit shah','vande mataram','railways','lok sabha','soren'],
-Bangladesh:['bangladesh','dhaka','sheikh hasina','tarique rahman'],
-Greece:['greece','greek','salamina'],
-Ukraine:['ukraine','ukrainian','kyiv'],
-Russia:['russia','russian','moscow'],
-Indonesia:['indonesia','indonesian','flores','koh samui'],
-Thailand:['thailand','thai','koh samui'],
-Australia:['australia','australian','new south wales','bondi beach'],
-United Kingdom:['united kingdom','uk','britain','british','london','england','scotland','wales','stourbridge','wakefield'],
-United States:['united states','u.s.','us ','american','texas','virginia state university','trump'],
-Canada:['canada','canadian'],
-China:['china','chinese'],
-South Korea:['south korea','korean'],
-Japan:['japan','japanese'],
-Pakistan:['pakistan','pakistani'],
-Iran:['iran','iranian'],
-Qatar:['qatar','qatari'],
-Israel:['israel','israeli'],
-Lebanon:['lebanon','lebanese'],
-Saudi Arabia:['saudi arabia','saudi','riyadh'],
-United Arab Emirates:['uae','united arab emirates','dubai','abu dhabi'],
-Poland:['poland','polish'],
-Belgium:['belgium','belgian'],
-France:['france','french'],
-Germany:['germany','german'],
-Italy:['italy','italian'],
-Portugal:['portugal','portuguese'],
-Spain:['spain','spanish'],
-Netherlands:['netherlands','dutch'],
-Morocco:['morocco','moroccan'],
-Egypt:['egypt','egyptian'],
-Brazil:['brazil','brazilian'],
-Argentina:['argentina','argentine'],
-Mexico:['mexico','mexican'],
-Nigeria:['nigeria','nigerian'],
-South Africa:['south africa','south african']};
-const REGIONS={Asia:['India','Bangladesh','Pakistan','China','Japan','South Korea','Indonesia','Thailand','Saudi Arabia','United Arab Emirates','Iran','Israel','Qatar'],Europe:['United Kingdom','Greece','France','Germany','Italy','Spain','Portugal','Netherlands','Poland','Belgium'],NorthAmerica:['United States','Canada','Mexico'],SouthAmerica:['Brazil','Argentina'],MiddleEast:['Saudi Arabia','United Arab Emirates','Iran','Israel','Qatar'],Africa:['Morocco','Egypt','Nigeria','South Africa'],Oceania:['Australia']};
-let feedCache=null,feedBusy=false;
-function effectiveCountry(s){const explicit=dec(s.country||'').trim();if(explicit&&explicit!=='Global')return explicit;if(String(s.category||'').toLowerCase()==='india')return 'India';const t=(' '+dec(s.headline||'')+' '+dec(s.summary||'')).toLowerCase();let best=null,score=0;Object.entries(COUNTRY_ALIASES).forEach(([c,terms])=>{let n=terms.reduce((z,x)=>z+(t.includes(x)?1:0),0);if(n>score){score=n;best=c}});return best||'Global'}
-async function getFeed(){if(feedCache)return feedCache;if(feedBusy)return null;feedBusy=true;try{const r=await api('news_stories?status=in.(verified,published,corrected,developing)&select=id,headline,summary,body,category,country,verification_status,source_count,updated_at&order=published_at.desc.nullslast,created_at.desc');feedCache=r.ok?await r.json():[];return feedCache}catch(_){return []}finally{feedBusy=false}}
-function cardHtml(s){return `<article class="card"><div class="label-row"><span class="badge">${esc(s.verification_status||'unverified').toUpperCase()}</span><span class="pill">${esc(s.source_count||0)} sources</span><span class="country-tag">${flag(effectiveCountry(s))} ${esc(effectiveCountry(s))}</span></div><h3>${esc(s.headline||'')}</h3><p style="font-size:12px;color:#667085">${esc(s.category||'General')}${s.updated_at?' · '+esc(new Date(s.updated_at).toLocaleString()):''}</p><p>${esc(s.summary||'')}</p><button class="read" data-open="${esc(s.id)}">Read full story →</button></article>`}
-async function applyCountry(country,region){const data=(await getFeed())||[];let list=data;if(country&&country!=='All')list=list.filter(s=>effectiveCountry(s).toLowerCase()===country.toLowerCase());else if(region&&region!=='All')list=list.filter(s=>REGIONS[region]?.includes(effectiveCountry(s)));const grid=$('#grid'),hero=$('#hero'),title=$('#listTitle'),count=$('#storyCount'),search=$('#q');if(!grid)return;const q=dec(search?.value||'').trim().toLowerCase();if(q)list=list.filter(s=>(dec(s.headline)+' '+dec(s.summary)+' '+dec(s.category)+' '+effectiveCountry(s)).toLowerCase().includes(q));hero.innerHTML='';title.textContent=country&&country!=='All'?`${flag(country)} ${country} Stories`:region&&region!=='All'?`${region} Stories`:'Top Stories · Worldwide';count.textContent=list.length+' stories';grid.innerHTML=list.length?list.map(cardHtml).join(''):'<div class="empty"><h3>No stories available for this selection right now</h3><p>Try another country, region or Worldwide.</p></div>'}
-// Capture country/region selection so the legacy inline renderer cannot discard the inferred-country result.
-document.addEventListener('mousedown',async e=>{const co=e.target.closest('.country-option');if(co){e.preventDefault();e.stopImmediatePropagation();const c=co.dataset.country;const input=$('#countrySearch');if(input)input.value=c;await applyCountry(c,'All');return}const rb=e.target.closest('[data-region]');if(rb){e.preventDefault();e.stopImmediatePropagation();const r=rb.dataset.region;document.querySelectorAll('[data-region]').forEach(x=>x.classList.toggle('active',x===rb));if($('#countrySearch'))$('#countrySearch').value='';await applyCountry('All',r)}},true);
-// Also make the India tab deterministic.
-document.addEventListener('click',async e=>{const b=e.target.closest('#myCountryTab');if(!b)return;e.preventDefault();e.stopImmediatePropagation();await applyCountry('India','All')},true);
-function decodeHome(){const root=home;if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),a=[];while(w.nextNode())a.push(w.currentNode);a.forEach(n=>{const d=dec(n.nodeValue);if(d!==n.nodeValue)n.nodeValue=d})}setTimeout(decodeHome,0);new MutationObserver(decodeHome).observe(home,{subtree:true,childList:true});
+function initStoryReader(){
+  if(window.__GLOBAL_NEWS_STORY_READER_WORKING__) return;
+  const home=document.querySelector('#home');
+  const detail=document.querySelector('#detail');
+  const article=document.querySelector('#article');
+  if(!home||!detail||!article) return;
+  window.__GLOBAL_NEWS_STORY_READER_WORKING__=true;
+
+  const style=document.createElement('style');
+  style.textContent=`
+    #detail .detail-toolbar,#detail .back{display:none!important}
+    .story-reader-wrap{max-width:980px;margin:0 auto}
+    .story-reader-back{height:38px;background:#fff;color:#344054;border:1px solid #d0d5dd;border-radius:9px;padding:0 14px;font-weight:700;cursor:pointer;margin:0 0 18px}
+    .story-reader-card{background:#fff;border:1px solid #e4e7ec;border-radius:20px;overflow:hidden;box-shadow:0 8px 30px rgba(16,24,40,.06)}
+    .story-reader-head{padding:34px 38px 28px;border-bottom:1px solid #eef0f3}
+    .story-reader-kicker{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+    .story-reader-head h1{font-size:40px;line-height:1.12;margin:16px 0 12px;color:#101828}
+    .story-reader-lead{font-size:17px;line-height:1.7;color:#475467;margin:0}
+    .story-reader-section{padding:0 38px;margin-top:28px}
+    .story-reader-section h2{font-size:19px;margin:0 0 12px;color:#101828}
+    .story-reader-brief{background:#f8fafc;border:1px solid #e7ebf0;border-radius:15px;padding:20px 22px}
+    .story-reader-label{font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.5px;color:#194185;margin-bottom:10px}
+    .story-reader-brief ul,.story-reader-report ul{margin:0;padding-left:21px}
+    .story-reader-brief li,.story-reader-report li{padding:7px 0;line-height:1.7;color:#344054}
+    .story-reader-report{font-size:16px;line-height:1.85;color:#344054}
+    .story-reader-report p{margin:0 0 16px}
+    .story-reader-note{font-size:11px;color:#667085;margin:12px 0 14px;line-height:1.6}
+    .story-reader-sources{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .story-reader-source{border:1px solid #e4e7ec;border-radius:13px;padding:16px;background:#fff}
+    .story-reader-publisher{font-size:13px;font-weight:850;color:#101828}
+    .story-reader-title{font-size:13px;font-weight:650;line-height:1.45;margin-top:7px;color:#344054}
+    .story-reader-excerpt{font-size:12px;line-height:1.65;color:#667085;margin-top:9px}
+    .story-reader-source a{display:inline-block;margin-top:11px;color:#2563eb;font-size:12px;font-weight:750;text-decoration:none}
+    .story-reader-loading,.story-reader-empty{padding:14px;color:#667085;font-size:13px}
+    .story-reader-error{padding:18px;border:1px solid #fedf89;border-radius:11px;background:#fffaeb;color:#b54708}
+    @media(max-width:700px){.story-reader-head{padding:24px 20px}.story-reader-head h1{font-size:29px}.story-reader-section{padding:0 20px}.story-reader-sources{grid-template-columns:1fr}}
+  `;
+  document.head.appendChild(style);
+
+  function decode(value){
+    let s=String(value??'');
+    for(let i=0;i<8;i++){
+      const ta=document.createElement('textarea');
+      ta.innerHTML=s;
+      const next=ta.value;
+      if(next===s) break;
+      s=next;
+    }
+    return s;
+  }
+  function esc(value){
+    return decode(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function api(path,options){
+    return fetch(SUPABASE_URL+'/rest/v1/'+path,Object.assign({headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,Accept:'application/json'}},options||{}));
+  }
+  function briefApi(id){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),9000);
+    return fetch(SUPABASE_URL+'/functions/v1/story-brief',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({story_id:id}),signal:controller.signal}).finally(()=>clearTimeout(timer));
+  }
+  function paragraphs(value){
+    const text=decode(value).replace(/\r/g,'').trim();
+    if(!text) return '';
+    return text.split(/\n{2,}|\n|(?<=[.!?])\s+(?=[A-Z0-9“‘])/).map(x=>x.trim()).filter(Boolean).map(x=>'<p>'+esc(x)+'</p>').join('');
+  }
+  function flag(country){
+    const flags={'India':'🇮🇳','Bangladesh':'🇧🇩','Pakistan':'🇵🇰','China':'🇨🇳','Japan':'🇯🇵','South Korea':'🇰🇷','Indonesia':'🇮🇩','Thailand':'🇹🇭','Greece':'🇬🇷','Ukraine':'🇺🇦','Russia':'🇷🇺','United Kingdom':'🇬🇧','United States':'🇺🇸','Canada':'🇨🇦','Australia':'🇦🇺','Saudi Arabia':'🇸🇦','United Arab Emirates':'🇦🇪','Israel':'🇮🇱','Iran':'🇮🇷','Qatar':'🇶🇦','Poland':'🇵🇱','France':'🇫🇷','Germany':'🇩🇪','Italy':'🇮🇹','Spain':'🇪🇸','Brazil':'🇧🇷'};
+    return flags[country]||'🌐';
+  }
+  function report(body,summary,points){
+    const b=decode(body).trim();
+    const s=decode(summary).trim();
+    const p=(Array.isArray(points)?points:[]).map(decode).map(x=>x.trim()).filter(x=>x.length>20);
+    if(b.length>=450&&b!==s) return {html:paragraphs(b),note:''};
+    if(p.length) return {html:'<div class="story-reader-label">Source-grounded report</div><ul>'+p.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>',note:'This report is synthesized only from source-grounded material available to the platform.'};
+    if(s) return {html:paragraphs(s),note:'Only limited source material is currently available for this story.'};
+    return {html:'<div class="story-reader-empty">A detailed report is not available yet.</div>',note:''};
+  }
+  function sourceCards(list){
+    if(!list.length) return '<div class="story-reader-empty">Source details are not available for this story yet.</div>';
+    return list.map(x=>'<div class="story-reader-source"><div class="story-reader-publisher">'+esc(x.publisher||'Source')+'</div><div class="story-reader-title">'+esc(x.title||'Original report')+'</div>'+(x.excerpt?'<div class="story-reader-excerpt">'+esc(x.excerpt)+'</div>':'')+(x.url?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">Open original source →</a>':'')+'</div>').join('');
+  }
+  function back(){
+    detail.classList.add('hidden');
+    home.classList.remove('hidden');
+    article.innerHTML='';
+    window.scrollTo(0,0);
+  }
+  async function openStory(id){
+    if(!id) return;
+    home.classList.add('hidden');
+    detail.classList.remove('hidden');
+    window.scrollTo(0,0);
+    article.innerHTML='<div class="story-reader-wrap"><button type="button" class="story-reader-back">← Back to stories</button><div class="story-reader-loading">Opening story…</div></div>';
+    article.querySelector('.story-reader-back').onclick=back;
+    try{
+      const response=await api('news_stories?id=eq.'+encodeURIComponent(id)+'&select=id,slug,headline,summary,body,category,country,verification_status,source_count,correction_notice');
+      if(!response.ok) throw new Error('Story could not be loaded.');
+      const rows=await response.json();
+      const story=rows[0];
+      if(!story) throw new Error('Story not found.');
+      const status=decode(story.verification_status||'Unverified').toUpperCase();
+      const country=decode(story.country||'Global');
+      const loading=article.querySelector('.story-reader-loading');
+      if(!loading) return;
+      loading.outerHTML='<article class="story-reader-card"><header class="story-reader-head"><div class="story-reader-kicker"><span class="badge">'+esc(status)+'</span><span class="pill">'+esc(story.source_count||0)+' sources</span><span class="country-tag">'+flag(country)+' '+esc(country)+'</span><span class="pill">'+esc(story.category||'General')+'</span></div><h1>'+esc(story.headline||'')+'</h1><p class="story-reader-lead">'+esc(story.summary||'A source-grounded report compiled from available reporting.')+'</p></header><section class="story-reader-section"><h2>Story Brief</h2><div id="storyReaderBrief" class="story-reader-brief"><div class="story-reader-label">Source-grounded brief</div><div class="story-reader-loading">Preparing key points from available source material…</div></div></section><section class="story-reader-section"><h2>Full Report</h2><div id="storyReaderReport" class="story-reader-report">'+report(story.body,story.summary,[]).html+'</div></section><section class="story-reader-section"><h2>Sources & attribution</h2><div id="storyReaderSources" class="story-reader-sources"><div class="story-reader-loading">Loading source attribution…</div></div></section>'+(story.correction_notice?'<div class="story-reader-note"><strong>Correction:</strong> '+esc(story.correction_notice)+'</div>':'')+'<div class="story-reader-note">Verification: <strong>'+esc(status)+'</strong>. The brief is grounded in source material available to the platform. Developing or unverified reporting is not presented as confirmed fact.</div></article>';
+      try{
+        const briefResponse=await briefApi(id);
+        if(!briefResponse.ok) throw new Error('brief unavailable');
+        const data=await briefResponse.json();
+        const points=Array.isArray(data?.brief?.points)?data.brief.points.filter(Boolean).slice(0,8):[];
+        const sources=Array.isArray(data?.sources)?data.sources:[];
+        const briefBox=document.querySelector('#storyReaderBrief');
+        const reportBox=document.querySelector('#storyReaderReport');
+        const sourceBox=document.querySelector('#storyReaderSources');
+        if(briefBox) briefBox.innerHTML='<div class="story-reader-label">'+esc(data?.brief?.label||'Source-grounded brief')+'</div>'+(points.length?'<ul>'+points.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul>':'<div class="story-reader-empty">A source-grounded brief is not available yet. Unsupported details will not be invented.</div>');
+        const rendered=report(story.body,story.summary,points);
+        if(reportBox) reportBox.innerHTML=rendered.html+(rendered.note?'<div class="story-reader-note">'+esc(rendered.note)+'</div>':'');
+        if(sourceBox) sourceBox.innerHTML=sourceCards(sources);
+      }catch(_){
+        const briefBox=document.querySelector('#storyReaderBrief');
+        const sourceBox=document.querySelector('#storyReaderSources');
+        if(briefBox) briefBox.innerHTML='<div class="story-reader-label">Source-grounded brief</div><div class="story-reader-empty">The source brief is temporarily unavailable. Available story content remains visible.</div>';
+        if(sourceBox) sourceBox.innerHTML='<div class="story-reader-empty">Source details are temporarily unavailable.</div>';
+      }
+    }catch(error){
+      article.innerHTML='<div class="story-reader-wrap"><button type="button" class="story-reader-back">← Back to stories</button><div class="story-reader-error"><strong>Unable to prepare this story.</strong><br>'+esc(error.message||'Please try again.')+'</div></div>';
+      article.querySelector('.story-reader-back').onclick=back;
+    }
+  }
+
+  document.addEventListener('click',function(event){
+    const button=event.target.closest('[data-open]');
+    if(!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openStory(button.getAttribute('data-open'));
+  },true);
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initStoryReader,{once:true});
+else initStoryReader();
 })();
