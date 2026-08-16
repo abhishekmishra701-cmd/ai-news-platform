@@ -1,6 +1,6 @@
 const { defineConfig, devices } = require('@playwright/test');
 
-const baseURL = process.env.E2E_BASE_URL || 'https://ai-news-platform-9r5kmlcnu-abhishekmishra701-5910s-projects.vercel.app';
+const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:4173';
 
 module.exports = defineConfig({
   testDir: './tests/e2e',
@@ -11,6 +11,12 @@ module.exports = defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'list',
+  webServer: {
+    command: 'npx serve . -l 4173 --no-clipboard',
+    url: baseURL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 30_000,
+  },
   use: {
     baseURL,
     trace: 'retain-on-failure',
