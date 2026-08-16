@@ -1,34 +1,39 @@
-name: Sync country tab with selector
+name: Apply preview UI patches
 on:
   push:
     branches: [feat/global-news-provenance-ui]
 permissions:
   contents: write
 jobs:
-  fix:
+  patch:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: feat/global-news-provenance-ui
-      - name: Patch country tab label
+      - name: Add Story Reading Experience 2.0
         run: |
           python - <<'PY'
           from pathlib import Path
           p = Path('index.html')
           s = p.read_text()
-          old = "function render(){nav.querySelectorAll('button').forEach(function(b){b.classList.remove('active')});var active=mode==='home'&&category==='Home'?nav.querySelector('[data-mode=\"home\"]'):mode==='country'?document.getElementById('myCountryTab'):nav.querySelector('[data-cat=\"'+CSS.escape(category)+'\"]');"
-          new = "function render(){var countryTab=document.getElementById('myCountryTab');if(countryTab)countryTab.textContent=selectedCountry!=='All'?flag(selectedCountry)+' '+selectedCountry:'🇮🇳 India';nav.querySelectorAll('button').forEach(function(b){b.classList.remove('active')});var active=mode==='home'&&category==='Home'?nav.querySelector('[data-mode=\"home\"]'):mode==='country'?countryTab:nav.querySelector('[data-cat=\"'+CSS.escape(category)+'\"]');"
-          if old not in s:
-              raise SystemExit('render target not found')
-          s = s.replace(old, new, 1)
-          p.write_text(s)
+          tag = '<script src="./story-reader-v2.js"></script>'
+          if tag not in s:
+              marker = '</body>'
+              if marker not in s:
+                  raise SystemExit('body marker not found')
+              s = s.replace(marker, tag + '\n' + marker, 1)
+              p.write_text(s)
           PY
       - name: Commit patch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'fix: sync India tab with selected country'
-          git push origin feat/global-news-provenance-ui
+          if git diff --cached --quiet; then
+            echo 'No UI patch needed.'
+          else
+            git commit -m 'feat: wire Story Reading Experience 2.0'
+            git push origin feat/global-news-provenance-ui
+          fi
