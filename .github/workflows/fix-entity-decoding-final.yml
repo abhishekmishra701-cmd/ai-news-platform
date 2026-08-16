@@ -1,0 +1,50 @@
+name: Fix double encoded entities
+on:
+  push:
+    branches: [feat/global-news-provenance-ui]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/global-news-provenance-ui
+      - name: Patch recursive entity decoding and cache bust
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('story-reader-v2.js')
+          s=p.read_text(encoding='utf-8')
+          old="function decode(v){const ta=document.createElement('textarea');ta.innerHTML=String(v??'');return ta.value}"
+          new="function decode(v){let s=String(v??'');for(let i=0;i<5;i++){const ta=document.createElement('textarea');ta.innerHTML=s;const d=ta.value;if(d===s)break;s=d}return s}"
+          if old not in s:
+              raise SystemExit('Expected decode function not found; refusing to overwrite unknown code')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          i=Path('index.html')
+          x=i.read_text(encoding='utf-8')
+          x=re.sub(r'story-reader-v2\\.js\\?v=\\d+', 'story-reader-v2.js?v=9', x)
+          i.write_text(x,encoding='utf-8')
+          PY
+      - name: Verify
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          r=Path('story-reader-v2.js').read_text(encoding='utf-8')
+          i=Path('index.html').read_text(encoding='utf-8')
+          assert 'for(let i=0;i<5;i++)' in r
+          assert 'story-reader-v2.js?v=9' in i
+          assert len(re.findall(r'<script\\s+src=["\\']\\./story-reader-v2\\.js\\?v=9["\\']\\s*></script>', i))==1
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add story-reader-v2.js index.html
+          git commit -m 'fix: decode nested HTML entities recursively' || exit 0
+          git push origin feat/global-news-provenance-ui
