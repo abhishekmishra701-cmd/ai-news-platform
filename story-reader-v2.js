@@ -15,15 +15,13 @@ function removeDuplicateBackControls(detail){
  detail.querySelectorAll('.back').forEach(x=>{if(x.id!=='back')x.remove();});
 }
 function reportFromSources(body,summary,points){
- const cleanBody=String(body||'').trim();
- const cleanSummary=String(summary||'').trim();
- const substantive=cleanBody.length>=450 && cleanBody!==cleanSummary;
- if(substantive)return {html:paragraphs(cleanBody),note:''};
- if(points.length){
-  return {html:points.map(p=>paragraphs(p)).join(''),note:'Detailed report synthesized only from the source-grounded material available to the platform. No unsupported details have been added.'};
- }
- if(cleanSummary)return {html:paragraphs(cleanSummary),note:'Only limited source material is currently available for this story.'};
- return {html:'<div class="story-v2-empty">A detailed report is not available yet.</div>',note:''};
+ const b=decodeEntities(body).trim(),sum=decodeEntities(summary).trim();
+ const usable=b.length>=450 && b!==sum;
+ if(usable)return {html:paragraphs(b),note:''};
+ const cleanPoints=points.map(decodeEntities).map(x=>x.trim()).filter(x=>x.length>20);
+ if(cleanPoints.length)return {html:`<div class=\"story-v2-report-label\">What the available sources report</div><ul class=\"story-v2-report-points\">${cleanPoints.map(p=>`<li>${safe(p)}</li>`).join('')}</ul>`,note:'This report is synthesized only from source-grounded material available to the platform. Unsupported details have not been added.'};
+ if(sum)return {html:paragraphs(sum),note:'Only limited source material is currently available for this story.'};
+ return {html:'<div class=\"story-v2-empty\">A detailed report is not available yet.</div>',note:''};
 }
 async function openV2(id){
  const home=document.querySelector('#home'),detail=document.querySelector('#detail'),article=document.querySelector('#article');if(!home||!detail||!article)return;
