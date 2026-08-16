@@ -45,18 +45,22 @@ test('story cards expose country labels when stories are available', async ({ pa
   }
 });
 
-test('story reading experience opens with one back button when a story is available', async ({ page }) => {
+test('story reading experience opens and returns with one Back to stories button when a story is available', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   const open = page.locator('[data-open]').first();
   if (await open.count()) {
     await open.click();
-    await expect(page.locator('.story-v2')).toBeVisible();
-    await expect(page.locator('.story-v2 h1')).toBeVisible();
+    await expect(page.locator('.story-reader-card')).toBeVisible();
+    await expect(page.locator('.story-reader-card h1')).toBeVisible();
     await expect(page.getByText('Story Brief', { exact: true })).toBeVisible();
     await expect(page.getByText('Full Report', { exact: true })).toBeVisible();
     await expect(page.getByText('Sources & attribution', { exact: true })).toBeVisible();
-    await expect(page.locator('#detail .back')).toHaveCount(1);
+    const back = page.getByRole('button', { name: '← Back to stories' });
+    await expect(back).toHaveCount(1);
+    await back.click();
+    await expect(page.locator('#home')).toBeVisible();
+    await expect(page.locator('#detail')).toHaveClass(/hidden/);
   }
 });
 
