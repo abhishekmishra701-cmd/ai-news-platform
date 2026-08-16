@@ -45,7 +45,7 @@ test('story cards expose country labels when stories are available', async ({ pa
   }
 });
 
-test('story reading experience opens and returns with one Back to stories button when a story is available', async ({ page }) => {
+test('story reading experience keeps Brief and Full Report distinct when detailed source material exists', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   const open = page.locator('[data-open]').first();
@@ -61,7 +61,7 @@ test('story reading experience opens and returns with one Back to stories button
     const report = page.locator('#storyReaderReport');
     await expect(brief).toBeVisible();
     await expect(report).toBeVisible();
-    await expect(report).toHaveAttribute('data-report-source', 'story-brief-v5');
+    await expect(report).toHaveAttribute('data-report-source', 'story-brief-v6');
     await expect(report.locator('p').first()).toBeVisible();
 
     const reportLabel = await report.locator('.story-reader-label').textContent();
