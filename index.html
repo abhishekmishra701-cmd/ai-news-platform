@@ -40,8 +40,8 @@ regionsEl.addEventListener('click',function(e){var b=e.target.closest('[data-reg
 countrySearch.addEventListener('focus',openMenu);countrySearch.addEventListener('click',openMenu);countrySearch.addEventListener('input',function(){menuOpen=true;renderCountryMenu()});
 countryMenu.addEventListener('mousedown',function(e){var b=e.target.closest('[data-country]');if(b){e.preventDefault();setCountry(b.dataset.country)}});
 document.addEventListener('click',function(e){if(!e.target.closest('.country-control'))closeMenu();});
-$('#search').onclick=function(){mode='home';render()};q.addEventListener('keydown',function(e){if(e.key==='Enter'){mode='home';render()}});$('#back').onclick=function(){detail.classList.add('hidden');home.classList.remove('hidden')};
+$('#search').onclick=function(){mode='home';render()};q.addEventListener('keydown',function(e){if(e.key==='Enter'){mode='home';render()}});
 renderRegions();renderCountryMenu();render();load();
 })();
-</script><script src="./story-reader-v2.js?v=13"></script>
+</script><script src="./story-reader-v2.js?v=14"></script>
 </body></html>
