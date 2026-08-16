@@ -56,6 +56,21 @@ test('story reading experience opens and returns with one Back to stories button
     await expect(page.getByText('Story Brief', { exact: true })).toBeVisible();
     await expect(page.getByText('Full Report', { exact: true })).toBeVisible();
     await expect(page.getByText('Sources & attribution', { exact: true })).toBeVisible();
+
+    const brief = page.locator('#storyReaderBrief');
+    const report = page.locator('#storyReaderReport');
+    await expect(brief).toBeVisible();
+    await expect(report).toBeVisible();
+    await expect(report).toHaveAttribute('data-report-source', 'story-brief-v5');
+    await expect(report.locator('p').first()).toBeVisible();
+
+    const reportLabel = await report.locator('.story-reader-label').textContent();
+    const reportWords = Number(await report.getAttribute('data-report-word-count') || 0);
+    const briefWords = Number(await report.getAttribute('data-brief-word-count') || 0);
+    if ((reportLabel || '').toLowerCase().includes('source-grounded report')) {
+      expect(reportWords).toBeGreaterThan(briefWords);
+    }
+
     const back = page.getByRole('button', { name: '← Back to stories' });
     await expect(back).toHaveCount(1);
     await back.click();
