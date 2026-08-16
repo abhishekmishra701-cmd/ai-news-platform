@@ -12,22 +12,41 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: feat/global-news-provenance-ui
-      - name: Ensure versioned Story Reading Experience scripts
+      - name: Apply Story Reader fixes
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+
           p = Path('index.html')
           s = p.read_text()
-          s = s.replace('<script src="./story-reader-v2.js"></script>', '<script src="./story-reader-v2.js?v=3"></script>')
-          s = s.replace('<script src="./story-content-v2.js"></script>', '<script src="./story-content-v2.js?v=3"></script>')
-          tags = ['<script src="./story-reader-v2.js?v=3"></script>', '<script src="./story-content-v2.js?v=3"></script>']
-          marker = '</body>'
-          for tag in tags:
-              if tag not in s:
-                  s = s.replace(marker, tag + '\n' + marker, 1)
+          s = s.replace('<script src="./story-reader-v2.js"></script>', '<script src="./story-reader-v2.js?v=4"></script>')
+          s = s.replace('<script src="./story-content-v2.js"></script>', '<script src="./story-content-v2.js?v=4"></script>')
+          if '<script src="./story-reader-v2.js?v=4"></script>' not in s:
+              s = s.replace('</body>', '<script src="./story-reader-v2.js?v=4"></script>\n</body>')
+          if '<script src="./story-content-v2.js?v=4"></script>' not in s:
+              s = s.replace('</body>', '<script src="./story-content-v2.js?v=4"></script>\n</body>')
+          p.write_text(s)
+
+          p = Path('story-reader-v2.js')
+          s = p.read_text()
+
+          # Decode HTML entities supplied by feeds before escaping them for HTML.
+          old = "const esc=v=>String(v??'').replace(/[&<>\\\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\\"':'&quot;',\"'\":'&#39;'}[c]));"
+          new = "const decodeEntities=v=>String(v??'').replace(/&(#(?:x[0-9a-f]+|[0-9]+)|amp|apos|quot|lt|gt|#39|#8217|#8216|#8220|#8221);/gi,(m,k)=>{if(k.toLowerCase()==='amp')return '&';if(k.toLowerCase()==='apos'||k.toLowerCase()==='#39')return \"'\";if(k.toLowerCase()==='quot')return '\"';if(k.toLowerCase()==='lt')return '<';if(k.toLowerCase()==='gt')return '>';if(k.toLowerCase()==='#8217')return '’';if(k.toLowerCase()==='#8216')return '‘';if(k.toLowerCase()==='#8220')return '“';if(k.toLowerCase()==='#8221')return '”';const n=k.toLowerCase().startsWith('#x')?parseInt(k.slice(2),16):parseInt(k.slice(1),10);return Number.isFinite(n)?String.fromCodePoint(n):m});\nconst esc=v=>String(decodeEntities(v)).replace(/[&<>\\\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\\"':'&quot;',\"'\":'&#39;'}[c]));"
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          # Always build Full Report from the source-grounded points when the stored body is only a headline/short snippet.
+          pattern = r"function reportFromSources\(body,summary,points\)\{.*?\n\}"
+          replacement = "function reportFromSources(body,summary,points){\n const b=decodeEntities(body).trim(),sum=decodeEntities(summary).trim();\n const usable=b.length>=450 && b!==sum;\n if(usable)return {html:paragraphs(b),note:''};\n const cleanPoints=points.map(decodeEntities).map(x=>x.trim()).filter(x=>x.length>20);\n if(cleanPoints.length)return {html:`<div class=\\\"story-v2-report-label\\\">What the available sources report</div><ul class=\\\"story-v2-report-points\\\">${cleanPoints.map(p=>`<li>${safe(p)}</li>`).join('')}</ul>`,note:'This report is synthesized only from source-grounded material available to the platform. Unsupported details have not been added.'};\n if(sum)return {html:paragraphs(sum),note:'Only limited source material is currently available for this story.'};\n return {html:'<div class=\\\"story-v2-empty\\\">A detailed report is not available yet.</div>',note:''};\n}"
+          s2 = re.sub(pattern, replacement, s, count=1, flags=re.S)
+          if s2 != s:
+              s = s2
+
           p.write_text(s)
           PY
-      - name: Remove legacy Story Reader back injection
+      - name: Remove duplicate Story Reader back controls
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -45,6 +64,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No UI patch needed.'
           else
-            git commit -m 'fix: cache-bust story reader and remove legacy back control'
+            git commit -m 'fix: render decoded story content and full reports'
             git push origin feat/global-news-provenance-ui
           fi
