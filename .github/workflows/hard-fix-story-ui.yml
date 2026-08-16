@@ -12,20 +12,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: feat/global-news-provenance-ui
-      - name: Normalize final story UI
+      - name: Finalize single story reader
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          # Repair the previous patch's accidental literal backslash-n in the inline script.
-          s=s.replace('}\\nfunction esc(v){', '}\nfunction esc(v){')
-          # Keep only the V2 reader and ensure its cache version changes with this fix.
-          s=re.sub(r'\./story-reader-v2\.js\?v=[0-9]+', './story-reader-v2.js?v=7', s)
+          s=s.replace("$('#search').onclick=function(){mode='home';render()};q.addEventListener('keydown',function(e){if(e.key==='Enter'){mode='home';render()}});$('#back').onclick=function(){detail.classList.add('hidden');home.classList.remove('hidden')};", "$('#search').onclick=function(){mode='home';render()};q.addEventListener('keydown',function(e){if(e.key==='Enter'){mode='home';render()}});")
+          s=re.sub(r'\./story-reader-v2\.js\?v=[0-9]+', './story-reader-v2.js?v=8', s)
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Validate source
+      - name: Validate final source
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -33,18 +31,18 @@ jobs:
           i=Path('index.html').read_text(encoding='utf-8')
           r=Path('story-reader-v2.js').read_text(encoding='utf-8')
           assert 'function openStory' not in i
-          assert "var b=e.target.closest('[data-open]');if(b)openStory" not in i
+          assert "openStory(b.dataset.open)" not in i
           assert '<div class="detail-toolbar">' not in i
-          assert 'story-reader-v2.js?v=7' in i
-          assert '\\nfunction esc(v)' not in i
+          assert "$('#back').onclick" not in i
+          assert 'story-reader-v2.js?v=8' in i
           assert 'storyV2Back' in r
           assert "detail.querySelectorAll('.back').forEach(el=>el.remove())" in r
-          assert len(re.findall(r'<script\s+src=["\']\./story-reader-v2\.js\?v=7["\']\s*></script>', i))==1
+          assert len(re.findall(r'<script\s+src=["\']\./story-reader-v2\.js\?v=8["\']\s*></script>', i))==1
           PY
           node --check story-reader-v2.js
-      - name: Commit final normalization
+      - name: Commit final fix
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html story-reader-v2.js
-          if git diff --cached --quiet; then echo 'No changes'; else git commit -m 'fix: normalize story reader and cache version'; git push origin feat/global-news-provenance-ui; fi
+          if git diff --cached --quiet; then echo 'No changes'; else git commit -m 'fix: remove dead legacy back handler'; git push origin feat/global-news-provenance-ui; fi
