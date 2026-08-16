@@ -70,81 +70,64 @@ function initStoryReader(){
     if(!text) return '';
     return text.split(/\n{2,}|\n|(?<=[.!?])\s+(?=[A-Z0-9“‘])/).map(x=>x.trim()).filter(Boolean).map(x=>'<p>'+esc(x)+'</p>').join('');
   }
+  function reportFromPayload(data,story){
+    const report=Array.isArray(data?.report?.paragraphs)?data.report.paragraphs.map(decode).map(x=>x.trim()).filter(Boolean):[];
+    const points=Array.isArray(data?.brief?.points)?data.brief.points.map(decode).map(x=>x.trim()).filter(Boolean):[];
+    const pointSet=new Set(points.map(x=>x.toLowerCase()));
+    const distinct=report.filter(x=>!pointSet.has(x.toLowerCase()));
+    if(distinct.length>=1){
+      return {html:'<div class="story-reader-label">'+esc(data?.report?.label||'Source-grounded report')+'</div>'+distinct.map(x=>'<p>'+esc(x)+'</p>').join(''),note:esc(data?.report?.coverage||'The report is assembled from source-grounded material.'),source:'story-brief-v6',reportWords:distinct.join(' ').split(/\s+/).filter(Boolean).length,briefWords:points.join(' ').split(/\s+/).filter(Boolean).length};
+    }
+    const body=decode(story.body||'').trim();
+    if(body&&body.toLowerCase()!==decode(story.summary||'').trim().toLowerCase()){
+      const html=paragraphs(body);
+      return {html:'<div class="story-reader-label">Source-grounded report</div>'+html,note:'Detailed source text stored with this story is shown separately from the brief.',source:'story-body',reportWords:body.split(/\s+/).filter(Boolean).length,briefWords:points.join(' ').split(/\s+/).filter(Boolean).length};
+    }
+    return {html:'<div class="story-reader-empty">A distinct detailed report is not available yet. The platform will not duplicate the brief or invent additional reporting.</div>',note:'Only limited source material is currently available for this story.',source:'unavailable',reportWords:0,briefWords:points.join(' ').split(/\s+/).filter(Boolean).length};
+  }
   function flag(country){
     const flags={'India':'🇮🇳','Bangladesh':'🇧🇩','Pakistan':'🇵🇰','China':'🇨🇳','Japan':'🇯🇵','South Korea':'🇰🇷','Indonesia':'🇮🇩','Thailand':'🇹🇭','Greece':'🇬🇷','Ukraine':'🇺🇦','Russia':'🇷🇺','United Kingdom':'🇬🇧','United States':'🇺🇸','Canada':'🇨🇦','Australia':'🇦🇺','Saudi Arabia':'🇸🇦','United Arab Emirates':'🇦🇪','Israel':'🇮🇱','Iran':'🇮🇷','Qatar':'🇶🇦','Poland':'🇵🇱','France':'🇫🇷','Germany':'🇩🇪','Italy':'🇮🇹','Spain':'🇪🇸','Brazil':'🇧🇷'};
     return flags[country]||'🌐';
-  }
-  function report(body,summary,points){
-    const b=decode(body).trim();
-    const s=decode(summary).trim();
-    const p=(Array.isArray(points)?points:[]).map(decode).map(x=>x.trim()).filter(x=>x.length>20);
-    if(b.length>=450&&b!==s) return {html:paragraphs(b),note:''};
-    if(p.length) return {html:'<div class="story-reader-label">Source-grounded report</div><ul>'+p.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>',note:'This report is synthesized only from source-grounded material available to the platform.'};
-    if(s) return {html:paragraphs(s),note:'Only limited source material is currently available for this story.'};
-    return {html:'<div class="story-reader-empty">A detailed report is not available yet.</div>',note:''};
   }
   function sourceCards(list){
     if(!list.length) return '<div class="story-reader-empty">Source details are not available for this story yet.</div>';
     return list.map(x=>'<div class="story-reader-source"><div class="story-reader-publisher">'+esc(x.publisher||'Source')+'</div><div class="story-reader-title">'+esc(x.title||'Original report')+'</div>'+(x.excerpt?'<div class="story-reader-excerpt">'+esc(x.excerpt)+'</div>':'')+(x.url?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">Open original source →</a>':'')+'</div>').join('');
   }
-  function back(){
-    detail.classList.add('hidden');
-    home.classList.remove('hidden');
-    article.innerHTML='';
-    window.scrollTo(0,0);
-  }
+  function back(){detail.classList.add('hidden');home.classList.remove('hidden');article.innerHTML='';window.scrollTo(0,0);}
   async function openStory(id){
     if(!id) return;
-    home.classList.add('hidden');
-    detail.classList.remove('hidden');
-    window.scrollTo(0,0);
+    home.classList.add('hidden');detail.classList.remove('hidden');window.scrollTo(0,0);
     article.innerHTML='<div class="story-reader-wrap"><button type="button" class="story-reader-back">← Back to stories</button><div class="story-reader-loading">Opening story…</div></div>';
     article.querySelector('.story-reader-back').onclick=back;
     try{
       const response=await api('news_stories?id=eq.'+encodeURIComponent(id)+'&select=id,slug,headline,summary,body,category,country,verification_status,source_count,correction_notice');
       if(!response.ok) throw new Error('Story could not be loaded.');
-      const rows=await response.json();
-      const story=rows[0];
+      const rows=await response.json();const story=rows[0];
       if(!story) throw new Error('Story not found.');
-      const status=decode(story.verification_status||'Unverified').toUpperCase();
-      const country=decode(story.country||'Global');
-      const loading=article.querySelector('.story-reader-loading');
-      if(!loading) return;
-      loading.outerHTML='<article class="story-reader-card"><header class="story-reader-head"><div class="story-reader-kicker"><span class="badge">'+esc(status)+'</span><span class="pill">'+esc(story.source_count||0)+' sources</span><span class="country-tag">'+flag(country)+' '+esc(country)+'</span><span class="pill">'+esc(story.category||'General')+'</span></div><h1>'+esc(story.headline||'')+'</h1><p class="story-reader-lead">'+esc(story.summary||'A source-grounded report compiled from available reporting.')+'</p></header><section class="story-reader-section"><h2>Story Brief</h2><div id="storyReaderBrief" class="story-reader-brief"><div class="story-reader-label">Source-grounded brief</div><div class="story-reader-loading">Preparing key points from available source material…</div></div></section><section class="story-reader-section"><h2>Full Report</h2><div id="storyReaderReport" class="story-reader-report">'+report(story.body,story.summary,[]).html+'</div></section><section class="story-reader-section"><h2>Sources & attribution</h2><div id="storyReaderSources" class="story-reader-sources"><div class="story-reader-loading">Loading source attribution…</div></div></section>'+(story.correction_notice?'<div class="story-reader-note"><strong>Correction:</strong> '+esc(story.correction_notice)+'</div>':'')+'<div class="story-reader-note">Verification: <strong>'+esc(status)+'</strong>. The brief is grounded in source material available to the platform. Developing or unverified reporting is not presented as confirmed fact.</div></article>';
+      const status=decode(story.verification_status||'Unverified').toUpperCase();const country=decode(story.country||'Global');
+      const loading=article.querySelector('.story-reader-loading');if(!loading)return;
+      loading.outerHTML='<article class="story-reader-card"><header class="story-reader-head"><div class="story-reader-kicker"><span class="badge">'+esc(status)+'</span><span class="pill">'+esc(story.source_count||0)+' sources</span><span class="country-tag">'+flag(country)+' '+esc(country)+'</span><span class="pill">'+esc(story.category||'General')+'</span></div><h1>'+esc(story.headline||'')+'</h1><p class="story-reader-lead">'+esc(story.summary||'A source-grounded report compiled from available reporting.')+'</p></header><section class="story-reader-section"><h2>Story Brief</h2><div id="storyReaderBrief" class="story-reader-brief"><div class="story-reader-label">Source-grounded brief</div><div class="story-reader-loading">Preparing key points from available source material…</div></div></section><section class="story-reader-section"><h2>Full Report</h2><div id="storyReaderReport" class="story-reader-report"><div class="story-reader-loading">Preparing detailed source-grounded report…</div></div></section><section class="story-reader-section"><h2>Sources & attribution</h2><div id="storyReaderSources" class="story-reader-sources"><div class="story-reader-loading">Loading source attribution…</div></div></section>'+(story.correction_notice?'<div class="story-reader-note"><strong>Correction:</strong> '+esc(story.correction_notice)+'</div>':'')+'<div class="story-reader-note">Verification: <strong>'+esc(status)+'</strong>. The brief and full report are rendered from separate payloads. Developing or unverified reporting is not presented as confirmed fact.</div></article>';
       try{
-        const briefResponse=await briefApi(id);
-        if(!briefResponse.ok) throw new Error('brief unavailable');
+        const briefResponse=await briefApi(id);if(!briefResponse.ok)throw new Error('brief unavailable');
         const data=await briefResponse.json();
-        const points=Array.isArray(data?.brief?.points)?data.brief.points.filter(Boolean).slice(0,8):[];
-        const sources=Array.isArray(data?.sources)?data.sources:[];
-        const briefBox=document.querySelector('#storyReaderBrief');
-        const reportBox=document.querySelector('#storyReaderReport');
-        const sourceBox=document.querySelector('#storyReaderSources');
-        if(briefBox) briefBox.innerHTML='<div class="story-reader-label">'+esc(data?.brief?.label||'Source-grounded brief')+'</div>'+(points.length?'<ul>'+points.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul>':'<div class="story-reader-empty">A source-grounded brief is not available yet. Unsupported details will not be invented.</div>');
-        const rendered=report(story.body,story.summary,points);
-        if(reportBox) reportBox.innerHTML=rendered.html+(rendered.note?'<div class="story-reader-note">'+esc(rendered.note)+'</div>':'');
-        if(sourceBox) sourceBox.innerHTML=sourceCards(sources);
+        const points=Array.isArray(data?.brief?.points)?data.brief.points.filter(Boolean).slice(0,8):[];const sources=Array.isArray(data?.sources)?data.sources:[];
+        const briefBox=document.querySelector('#storyReaderBrief');const reportBox=document.querySelector('#storyReaderReport');const sourceBox=document.querySelector('#storyReaderSources');
+        if(briefBox)briefBox.innerHTML='<div class="story-reader-label">'+esc(data?.brief?.label||'Source-grounded brief')+'</div>'+(points.length?'<ul>'+points.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul>':'<div class="story-reader-empty">A source-grounded brief is not available yet. Unsupported details will not be invented.</div>');
+        const rendered=reportFromPayload(data,story);
+        if(reportBox){reportBox.innerHTML=rendered.html+(rendered.note?'<div class="story-reader-note">'+rendered.note+'</div>':'');reportBox.dataset.reportSource=rendered.source;reportBox.dataset.reportWordCount=String(rendered.reportWords);reportBox.dataset.briefWordCount=String(rendered.briefWords);}
+        if(sourceBox)sourceBox.innerHTML=sourceCards(sources);
       }catch(_){
-        const briefBox=document.querySelector('#storyReaderBrief');
-        const sourceBox=document.querySelector('#storyReaderSources');
-        if(briefBox) briefBox.innerHTML='<div class="story-reader-label">Source-grounded brief</div><div class="story-reader-empty">The source brief is temporarily unavailable. Available story content remains visible.</div>';
-        if(sourceBox) sourceBox.innerHTML='<div class="story-reader-empty">Source details are temporarily unavailable.</div>';
+        const briefBox=document.querySelector('#storyReaderBrief');const reportBox=document.querySelector('#storyReaderReport');const sourceBox=document.querySelector('#storyReaderSources');
+        if(briefBox)briefBox.innerHTML='<div class="story-reader-label">Source-grounded brief</div><div class="story-reader-empty">The source brief is temporarily unavailable. Available story content remains visible.</div>';
+        if(reportBox)reportBox.innerHTML='<div class="story-reader-empty">The detailed report is temporarily unavailable. The brief is not duplicated.</div>';
+        if(sourceBox)sourceBox.innerHTML='<div class="story-reader-empty">Source details are temporarily unavailable.</div>';
       }
     }catch(error){
       article.innerHTML='<div class="story-reader-wrap"><button type="button" class="story-reader-back">← Back to stories</button><div class="story-reader-error"><strong>Unable to prepare this story.</strong><br>'+esc(error.message||'Please try again.')+'</div></div>';
       article.querySelector('.story-reader-back').onclick=back;
     }
   }
-
-  document.addEventListener('click',function(event){
-    const button=event.target.closest('[data-open]');
-    if(!button) return;
-    event.preventDefault();
-    event.stopPropagation();
-    openStory(button.getAttribute('data-open'));
-  },true);
+  document.addEventListener('click',function(event){const button=event.target.closest('[data-open]');if(!button)return;event.preventDefault();event.stopPropagation();openStory(button.getAttribute('data-open'));},true);
 }
-
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initStoryReader,{once:true});
-else initStoryReader();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initStoryReader,{once:true});else initStoryReader();
 })();
