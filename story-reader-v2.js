@@ -4,7 +4,7 @@ const SUPABASE_URL='https://nfqwnrmwyhcycjsfwqfl.supabase.co';
 const SUPABASE_KEY='sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl';
 
 const css=`
-.story-v2-back-wrap{margin:0 0 18px}.story-v2{max-width:980px;margin:0 auto;background:#fff;border:1px solid #e4e7ec;border-radius:20px;overflow:hidden;box-shadow:0 8px 30px rgba(16,24,40,.06)}
+.story-v2{max-width:980px;margin:0 auto;background:#fff;border:1px solid #e4e7ec;border-radius:20px;overflow:hidden;box-shadow:0 8px 30px rgba(16,24,40,.06)}
 .story-v2-head{padding:34px 38px 28px;border-bottom:1px solid #eef0f3}
 .story-v2-kicker{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
 .story-v2-head h1{font-size:40px;line-height:1.12;letter-spacing:-.8px;margin:16px 0 12px;color:#101828}
@@ -60,7 +60,7 @@ function sourceCards(sources){
 }
 function removeDuplicateBackControls(detail){
   detail.querySelectorAll('.story-v2-back,.story-v2-back-wrap').forEach(el=>el.remove());
-  detail.querySelectorAll('.back').forEach(el=>el.remove());
+  detail.querySelectorAll('.back').forEach(el=>{if(el.id!=='back')el.remove()});
 }
 function buildReport(body,summary,points){
   const b=decode(body).trim(), sum=decode(summary).trim();
@@ -77,7 +77,7 @@ async function openV2(id){
   if(!home||!detail||!article)return;
   removeDuplicateBackControls(detail);
   home.classList.add('hidden');detail.classList.remove('hidden');
-  article.innerHTML='<div class="story-v2-back-wrap"><button id="storyV2Back" class="back" type="button">← Back to stories</button></div><div class="story-v2-loading">Opening story…</div>';document.querySelector('#storyV2Back').onclick=()=>{detail.classList.add('hidden');home.classList.remove('hidden');};scrollTo(0,0);
+  article.innerHTML='<div class="story-v2-loading">Opening story…</div>';scrollTo(0,0);
   try{
     const sr=await api('news_stories?id=eq.'+encodeURIComponent(id)+'&select=id,slug,headline,summary,body,category,country,verification_status,source_count,correction_notice,updated_at');
     if(!sr.ok)throw new Error('Story could not be loaded.');
