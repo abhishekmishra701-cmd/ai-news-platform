@@ -4,9 +4,10 @@ const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || "sb_publishable_FXSeGzRWwQ
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
   const id = typeof req.query?.id === "string" ? req.query.id : null;
+  const fields = "id,slug,headline,summary,body,category,country,status,verification_status,source_count,correction_notice,published_at,created_at,updated_at";
   const base = id
     ? `news_stories?id=eq.${encodeURIComponent(id)}&select=*`
-    : "news_stories?status=in.(verified,published,corrected,developing)&select=id,slug,headline,summary,body,category,status,verification_status,source_count,correction_notice,published_at,created_at,updated_at&order=published_at.desc.nullslast,created_at.desc";
+    : `news_stories?status=in.(verified,published,corrected,developing)&select=${fields}&order=published_at.desc.nullslast,created_at.desc`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
