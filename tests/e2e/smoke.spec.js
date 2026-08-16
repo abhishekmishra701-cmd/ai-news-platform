@@ -14,13 +14,15 @@ test('news homepage loads with core UI', async ({ page }) => {
 test('country personalization controls work', async ({ page }) => {
   await page.goto('/');
   const country = page.locator('#countrySearch');
+  await country.click();
   await country.fill('India');
-  await country.press('Enter');
+  await expect(page.locator('#countryMenu .country-option[data-country="India"]')).toBeVisible();
+  await page.locator('#countryMenu .country-option[data-country="India"]').click();
   await expect(page.locator('#listTitle')).toContainText('India');
-  await expect(page.locator('#countryClear')).toBeVisible();
+  await expect(page.locator('#myCountryTab')).toContainText('India');
 
-  await page.locator('#countryClear').click();
-  await expect(page.locator('#listTitle')).toContainText('Worldwide');
+  await country.click();
+  await expect(page.locator('#countryMenu .country-option')).not.toHaveCount(0);
 });
 
 test('category navigation and search controls work', async ({ page }) => {
@@ -40,6 +42,20 @@ test('story cards expose country labels when stories are available', async ({ pa
   const cards = page.locator('.card');
   if (await cards.count()) {
     await expect(cards.first().locator('.country-tag')).toBeVisible();
+  }
+});
+
+test('story reading experience opens when a story is available', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  const open = page.locator('[data-open]').first();
+  if (await open.count()) {
+    await open.click();
+    await expect(page.locator('.story-v2')).toBeVisible();
+    await expect(page.locator('.story-v2 h1')).toBeVisible();
+    await expect(page.getByText('Story Brief', { exact: true })).toBeVisible();
+    await expect(page.getByText('Full Report', { exact: true })).toBeVisible();
+    await expect(page.getByText('Sources & attribution', { exact: true })).toBeVisible();
   }
 });
 
