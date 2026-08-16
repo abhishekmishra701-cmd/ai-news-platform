@@ -1,3 +1,5 @@
+import { inferCountryFromStory } from "../lib/country-inference.js";
+
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://nfqwnrmwyhcycjsfwqfl.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || "sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl";
 
@@ -20,6 +22,12 @@ export default async function handler(req, res) {
         const sr = await fetch(`${SUPABASE_URL}/rest/v1/news_sources?story_id=eq.${encodeURIComponent(id)}&select=publisher,url,title&order=created_at.asc`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Accept: "application/json" }, signal: controller.signal });
         if (sr.ok) data[0].sources = await sr.json();
       } catch (_) {}
+    }
+    if (Array.isArray(data)) {
+      data = data.map((story) => {
+        const attribution = inferCountryFromStory(story);
+        return attribution.country ? { ...story, country: attribution.country, country_attribution: attribution.inferred ? "inferred_from_explicit_story_signal" : "source_data" } : { ...story, country: story.country || null, country_attribution: story.country ? "source_data" : "unattributed" };
+      });
     }
     return res.status(200).json(data);
   } catch (error) {
