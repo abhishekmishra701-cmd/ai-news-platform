@@ -18,12 +18,16 @@ jobs:
           from pathlib import Path
           p = Path('index.html')
           s = p.read_text()
-          tag = '<script src="./story-reader-v2.js"></script>'
-          if tag not in s:
-              marker = '</body>'
-              if marker not in s:
-                  raise SystemExit('body marker not found')
-              s = s.replace(marker, tag + '\n' + marker, 1)
+          tags = ['<script src="./story-reader-v2.js"></script>', '<script src="./story-content-v2.js"></script>']
+          marker = '</body>'
+          if marker not in s:
+              raise SystemExit('body marker not found')
+          changed = False
+          for tag in tags:
+              if tag not in s:
+                  s = s.replace(marker, tag + '\n' + marker, 1)
+                  changed = True
+          if changed:
               p.write_text(s)
           PY
       - name: Remove duplicate Story Reader back control
