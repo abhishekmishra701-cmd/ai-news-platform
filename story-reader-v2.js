@@ -2,7 +2,7 @@
 'use strict';
 
 // Compatibility loader: keep the proven reader isolated and integrate the
-// structured report returned by story-brief v5 without duplicating the brief.
+// structured report returned by story-brief v6 without duplicating the brief.
 if(window.__GLOBAL_NEWS_STORY_READER_LOADER__) return;
 window.__GLOBAL_NEWS_STORY_READER_LOADER__=true;
 
@@ -23,11 +23,10 @@ function enhanceReport(data){
   const reportText=paragraphs.join(' ').trim().toLowerCase();
   const briefText=briefPoints.join(' ').trim().toLowerCase();
   if(!reportText) return;
-  // The report must use the report payload, not the brief points. If the
-  // upstream source only provides the same limited material, retain the
-  // honest fallback instead of inventing additional detail.
+  // Full Report is rendered only from the dedicated report payload. Brief
+  // points are never reused as the report body.
   box.innerHTML='<div class="story-reader-label">'+escapeHtml(data?.report?.label||'Source-grounded report')+'</div>'+renderParagraphs(paragraphs)+'<div class="story-reader-note">'+escapeHtml(data?.report?.coverage||'The report is grounded in source material available to the platform.')+'</div>';
-  box.dataset.reportSource='story-brief-v5';
+  box.dataset.reportSource='story-brief-v6';
   box.dataset.briefWordCount=String(briefText.split(/\s+/).filter(Boolean).length);
   box.dataset.reportWordCount=String(reportText.split(/\s+/).filter(Boolean).length);
 }
@@ -47,7 +46,7 @@ window.fetch=async function(...args){
 };
 
 const script=document.createElement('script');
-script.src='./story-reader-core-v2.js?v=1';
+script.src='./story-reader-core-v2.js?v=2';
 script.async=false;
 document.head.appendChild(script);
 })();
