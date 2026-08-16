@@ -10,9 +10,18 @@ const originalFetch=window.fetch.bind(window);
 const SUPABASE_FUNCTION='/functions/v1/story-brief';
 
 function decodeHtml(value){
-  const textarea=document.createElement('textarea');
-  textarea.innerHTML=String(value??'');
-  return textarea.value;
+  // Source feeds can contain entities that have been encoded more than once
+  // (e.g. &amp;#8216;). Decode repeatedly until the value is stable so users
+  // never see raw HTML entities in the reader.
+  let current=String(value??'');
+  for(let i=0;i<4;i++){
+    const textarea=document.createElement('textarea');
+    textarea.innerHTML=current;
+    const decoded=textarea.value;
+    if(decoded===current) break;
+    current=decoded;
+  }
+  return current;
 }
 function escapeHtml(value){
   return decodeHtml(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -29,7 +38,7 @@ function enhanceReport(data){
   const briefText=briefPoints.map(decodeHtml).join(' ').trim().toLowerCase();
   if(!reportText) return;
   // Decode upstream HTML entities (including numeric entities such as
-  // &#8216;/&#8217;) before escaping for safe display. Never render raw entities.
+  // &#8216;/&#8217; and double-encoded forms) before escaping for safe display.
   box.innerHTML='<div class="story-reader-label">'+escapeHtml(data?.report?.label||'Source-grounded report')+'</div>'+renderParagraphs(paragraphs)+'<div class="story-reader-note">'+escapeHtml(data?.report?.coverage||'The report is grounded in source material available to the platform.')+'</div>';
   box.dataset.reportSource='story-brief-v6';
   box.dataset.briefWordCount=String(briefText.split(/\s+/).filter(Boolean).length);
@@ -51,7 +60,7 @@ window.fetch=async function(...args){
 };
 
 const script=document.createElement('script');
-script.src='./story-reader-core-v2.js?v=3';
+script.src='./story-reader-core-v2.js?v=4';
 script.async=false;
 document.head.appendChild(script);
 })();
