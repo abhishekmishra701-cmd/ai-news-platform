@@ -16,18 +16,22 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           p=Path('story-reader-v2.js')
           s=p.read_text(encoding='utf-8')
           old='#detail>.detail-wrap>.detail-toolbar,#detail #back{display:none!important}'
           new='#detail>.detail-wrap>.detail-toolbar,#detail #back,#detail .back:not(#storyV2Back){display:none!important}'
-          if old not in s:
+          if old in s:
+              s=s.replace(old,new,1)
+          elif '#detail .back:not(#storyV2Back)' not in s:
               raise SystemExit('Expected story-reader CSS selector not found')
-          s=s.replace(old,new,1)
           p.write_text(s,encoding='utf-8')
           i=Path('index.html')
           x=i.read_text(encoding='utf-8')
-          x=re.sub(r'story-reader-v2\\.js\\?v=\\d+', 'story-reader-v2.js?v=10', x)
+          old_script='./story-reader-v2.js?v=9'
+          if old_script in x:
+              x=x.replace(old_script,'./story-reader-v2.js?v=10',1)
+          elif './story-reader-v2.js?v=10' not in x:
+              raise SystemExit('Expected story-reader script tag not found')
           i.write_text(x,encoding='utf-8')
           PY
       - name: Verify
@@ -37,7 +41,7 @@ jobs:
           r=Path('story-reader-v2.js').read_text(encoding='utf-8')
           i=Path('index.html').read_text(encoding='utf-8')
           assert '#detail .back:not(#storyV2Back)' in r
-          assert 'story-reader-v2.js?v=10' in i
+          assert './story-reader-v2.js?v=10' in i
           PY
           node --check story-reader-v2.js
       - name: Commit
