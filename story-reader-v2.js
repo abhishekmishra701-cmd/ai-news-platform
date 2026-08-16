@@ -9,8 +9,13 @@ window.__GLOBAL_NEWS_STORY_READER_LOADER__=true;
 const originalFetch=window.fetch.bind(window);
 const SUPABASE_FUNCTION='/functions/v1/story-brief';
 
+function decodeHtml(value){
+  const textarea=document.createElement('textarea');
+  textarea.innerHTML=String(value??'');
+  return textarea.value;
+}
 function escapeHtml(value){
-  return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return decodeHtml(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function renderParagraphs(items){
   return items.map(x=>'<p>'+escapeHtml(x)+'</p>').join('');
@@ -20,11 +25,11 @@ function enhanceReport(data){
   const box=document.querySelector('#storyReaderReport');
   if(!box||!paragraphs.length) return;
   const briefPoints=Array.isArray(data?.brief?.points)?data.brief.points.filter(Boolean):[];
-  const reportText=paragraphs.join(' ').trim().toLowerCase();
-  const briefText=briefPoints.join(' ').trim().toLowerCase();
+  const reportText=paragraphs.map(decodeHtml).join(' ').trim().toLowerCase();
+  const briefText=briefPoints.map(decodeHtml).join(' ').trim().toLowerCase();
   if(!reportText) return;
-  // Full Report is rendered only from the dedicated report payload. Brief
-  // points are never reused as the report body.
+  // Decode upstream HTML entities (including numeric entities such as
+  // &#8216;/&#8217;) before escaping for safe display. Never render raw entities.
   box.innerHTML='<div class="story-reader-label">'+escapeHtml(data?.report?.label||'Source-grounded report')+'</div>'+renderParagraphs(paragraphs)+'<div class="story-reader-note">'+escapeHtml(data?.report?.coverage||'The report is grounded in source material available to the platform.')+'</div>';
   box.dataset.reportSource='story-brief-v6';
   box.dataset.briefWordCount=String(briefText.split(/\s+/).filter(Boolean).length);
@@ -46,7 +51,7 @@ window.fetch=async function(...args){
 };
 
 const script=document.createElement('script');
-script.src='./story-reader-core-v2.js?v=2';
+script.src='./story-reader-core-v2.js?v=3';
 script.async=false;
 document.head.appendChild(script);
 })();
