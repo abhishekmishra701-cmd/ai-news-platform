@@ -12,34 +12,29 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: feat/global-news-provenance-ui
-      - name: Add Story Reading Experience 2.0
+      - name: Ensure versioned Story Reading Experience scripts
         run: |
           python - <<'PY'
           from pathlib import Path
           p = Path('index.html')
           s = p.read_text()
-          tags = ['<script src="./story-reader-v2.js"></script>', '<script src="./story-content-v2.js"></script>']
+          s = s.replace('<script src="./story-reader-v2.js"></script>', '<script src="./story-reader-v2.js?v=3"></script>')
+          s = s.replace('<script src="./story-content-v2.js"></script>', '<script src="./story-content-v2.js?v=3"></script>')
+          tags = ['<script src="./story-reader-v2.js?v=3"></script>', '<script src="./story-content-v2.js?v=3"></script>']
           marker = '</body>'
-          if marker not in s:
-              raise SystemExit('body marker not found')
-          changed = False
           for tag in tags:
               if tag not in s:
                   s = s.replace(marker, tag + '\n' + marker, 1)
-                  changed = True
-          if changed:
-              p.write_text(s)
+          p.write_text(s)
           PY
-      - name: Remove duplicate Story Reader back control
+      - name: Remove legacy Story Reader back injection
         run: |
           python - <<'PY'
           from pathlib import Path
           p = Path('story-reader-v2.js')
           s = p.read_text()
-          old = '<div class="story-v2-back"><button id="storyV2Back" class="back">← Back to stories</button></div><article class="story-v2">'
-          new = '<article class="story-v2">'
-          s = s.replace(old, new, 1)
-          s = s.replace("  document.querySelector('#storyV2Back').onclick=()=>{detail.classList.add('hidden');home.classList.remove('hidden');};\n", '', 1)
+          s = s.replace('<div class="story-v2-back"><button id="storyV2Back" class="back">← Back to stories</button></div>', '')
+          s = s.replace("document.querySelector('#storyV2Back').onclick=()=>{detail.classList.add('hidden');home.classList.remove('hidden');};", '')
           p.write_text(s)
           PY
       - name: Commit patch
@@ -50,6 +45,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No UI patch needed.'
           else
-            git commit -m 'fix: remove duplicate story reader back button'
+            git commit -m 'fix: cache-bust story reader and remove legacy back control'
             git push origin feat/global-news-provenance-ui
           fi
