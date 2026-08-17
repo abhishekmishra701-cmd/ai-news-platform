@@ -57,6 +57,19 @@ function initStoryReader(){
   function esc(value){
     return decode(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
+  function normalizeVisibleEntities(){
+    const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+    const nodes=[];
+    while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node=>{
+      const parent=node.parentElement;
+      if(!parent||/^(SCRIPT|STYLE|TEXTAREA|INPUT)$/i.test(parent.tagName)) return;
+      const value=node.nodeValue||'';
+      if(!/&(?:amp;)*#(?:x[0-9a-f]+|[0-9]+);/i.test(value)) return;
+      const normalized=decode(value);
+      if(normalized!==value) node.nodeValue=normalized;
+    });
+  }
   function api(path,options){
     return fetch(SUPABASE_URL+'/rest/v1/'+path,Object.assign({headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,Accept:'application/json'}},options||{}));
   }
@@ -93,12 +106,13 @@ function initStoryReader(){
     if(!list.length) return '<div class="story-reader-empty">Source details are not available for this story yet.</div>';
     return list.map(x=>'<div class="story-reader-source"><div class="story-reader-publisher">'+esc(x.publisher||'Source')+'</div><div class="story-reader-title">'+esc(x.title||'Original report')+'</div>'+(x.excerpt?'<div class="story-reader-excerpt">'+esc(x.excerpt)+'</div>':'')+(x.url?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">Open original source →</a>':'')+'</div>').join('');
   }
-  function back(){detail.classList.add('hidden');home.classList.remove('hidden');article.innerHTML='';window.scrollTo(0,0);}
+  function back(){detail.classList.add('hidden');home.classList.remove('hidden');article.innerHTML='';window.scrollTo(0,0);normalizeVisibleEntities();}
   async function openStory(id){
     if(!id) return;
     home.classList.add('hidden');detail.classList.remove('hidden');window.scrollTo(0,0);
     article.innerHTML='<div class="story-reader-wrap"><button type="button" class="story-reader-back">← Back to stories</button><div class="story-reader-loading">Opening story…</div></div>';
     article.querySelector('.story-reader-back').onclick=back;
+    normalizeVisibleEntities();
     try{
       const response=await api('news_stories?id=eq.'+encodeURIComponent(id)+'&select=id,slug,headline,summary,body,category,country,verification_status,source_count,correction_notice');
       if(!response.ok) throw new Error('Story could not be loaded.');
@@ -107,6 +121,7 @@ function initStoryReader(){
       const status=decode(story.verification_status||'Unverified').toUpperCase();const country=decode(story.country||'Global');
       const loading=article.querySelector('.story-reader-loading');if(!loading)return;
       loading.outerHTML='<article class="story-reader-card"><header class="story-reader-head"><div class="story-reader-kicker"><span class="badge">'+esc(status)+'</span><span class="pill">'+esc(story.source_count||0)+' sources</span><span class="country-tag">'+flag(country)+' '+esc(country)+'</span><span class="pill">'+esc(story.category||'General')+'</span></div><h1>'+esc(story.headline||'')+'</h1><p class="story-reader-lead">'+esc(story.summary||'A source-grounded report compiled from available reporting.')+'</p></header><section class="story-reader-section"><h2>Story Brief</h2><div id="storyReaderBrief" class="story-reader-brief"><div class="story-reader-label">Source-grounded brief</div><div class="story-reader-loading">Preparing key points from available source material…</div></div></section><section class="story-reader-section"><h2>Full Report</h2><div id="storyReaderReport" class="story-reader-report"><div class="story-reader-loading">Preparing detailed source-grounded report…</div></div></section><section class="story-reader-section"><h2>Sources & attribution</h2><div id="storyReaderSources" class="story-reader-sources"><div class="story-reader-loading">Loading source attribution…</div></div></section>'+(story.correction_notice?'<div class="story-reader-note"><strong>Correction:</strong> '+esc(story.correction_notice)+'</div>':'')+'<div class="story-reader-note">Verification: <strong>'+esc(status)+'</strong>. The brief and full report are rendered from separate payloads. Developing or unverified reporting is not presented as confirmed fact.</div></article>';
+      normalizeVisibleEntities();
       try{
         const briefResponse=await briefApi(id);if(!briefResponse.ok)throw new Error('brief unavailable');
         const data=await briefResponse.json();
@@ -116,18 +131,24 @@ function initStoryReader(){
         const rendered=reportFromPayload(data,story);
         if(reportBox){reportBox.innerHTML=rendered.html+(rendered.note?'<div class="story-reader-note">'+rendered.note+'</div>':'');reportBox.dataset.reportSource=rendered.source;reportBox.dataset.reportWordCount=String(rendered.reportWords);reportBox.dataset.briefWordCount=String(rendered.briefWords);}
         if(sourceBox)sourceBox.innerHTML=sourceCards(sources);
+        normalizeVisibleEntities();
       }catch(_){
         const briefBox=document.querySelector('#storyReaderBrief');const reportBox=document.querySelector('#storyReaderReport');const sourceBox=document.querySelector('#storyReaderSources');
         if(briefBox)briefBox.innerHTML='<div class="story-reader-label">Source-grounded brief</div><div class="story-reader-empty">The source brief is temporarily unavailable. Available story content remains visible.</div>';
         if(reportBox)reportBox.innerHTML='<div class="story-reader-empty">The detailed report is temporarily unavailable. The brief is not duplicated.</div>';
         if(sourceBox)sourceBox.innerHTML='<div class="story-reader-empty">Source details are temporarily unavailable.</div>';
+        normalizeVisibleEntities();
       }
     }catch(error){
       article.innerHTML='<div class="story-reader-wrap"><button type="button" class="story-reader-back">← Back to stories</button><div class="story-reader-error"><strong>Unable to prepare this story.</strong><br>'+esc(error.message||'Please try again.')+'</div></div>';
       article.querySelector('.story-reader-back').onclick=back;
+      normalizeVisibleEntities();
     }
   }
   document.addEventListener('click',function(event){const button=event.target.closest('[data-open]');if(!button)return;event.preventDefault();event.stopPropagation();openStory(button.getAttribute('data-open'));},true);
+  normalizeVisibleEntities();
+  const observer=new MutationObserver(normalizeVisibleEntities);
+  observer.observe(document.body,{subtree:true,childList:true,characterData:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initStoryReader,{once:true});else initStoryReader();
 })();
