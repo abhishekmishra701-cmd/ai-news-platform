@@ -45,6 +45,22 @@ test('story cards expose country labels when stories are available', async ({ pa
   }
 });
 
+test('visible news text never exposes raw numeric HTML entities', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  const entityPattern = /&(?:amp;)*#(?:x[0-9a-f]+|[0-9]+);/i;
+  expect(await page.locator('body').innerText()).not.toMatch(entityPattern);
+
+  const open = page.locator('[data-open]').first();
+  if (await open.count()) {
+    await open.click();
+    await expect(page.locator('.story-reader-card')).toBeVisible();
+    expect(await page.locator('body').innerText()).not.toMatch(entityPattern);
+    expect(await page.locator('#storyReaderBrief').innerText()).not.toMatch(entityPattern);
+    expect(await page.locator('#storyReaderReport').innerText()).not.toMatch(entityPattern);
+  }
+});
+
 test('story reading experience keeps Brief and Full Report distinct when detailed source material exists', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
