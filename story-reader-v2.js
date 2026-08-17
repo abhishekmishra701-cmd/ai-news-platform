@@ -60,10 +60,13 @@ async function reconcileCountryFeed(){
       const cards=featured?data.slice(1):data;grid.innerHTML=cards.length?cards.map(card).join(''):'<div class="empty"><h3>No stories available for this selection right now</h3><p>Try another country, region or Worldwide.</p></div>';
       const title=document.querySelector('#listTitle');const count=document.querySelector('#storyCount');if(title)title.textContent=selected?(flag(selected)+' '+selected+' Stories'):st.region!=='All'?st.region+' Stories':st.category==='Home'?'Top Stories · Worldwide':st.category+' Stories';if(count)count.textContent=data.length+' stories';
     }
+    const rerender=()=>setTimeout(render,0);
     render();
-    document.addEventListener('click',()=>setTimeout(render,0),true);
-    document.addEventListener('input',()=>setTimeout(render,0),true);
-    document.addEventListener('keydown',e=>{if(e.key==='Enter')setTimeout(render,0)},true);
+    // Run after the application's own handlers so our API-backed state is authoritative.
+    document.addEventListener('click',rerender,false);
+    document.addEventListener('input',rerender,false);
+    document.addEventListener('keydown',e=>{if(e.key==='Enter')setTimeout(render,0)},false);
+    window.__GLOBAL_NEWS_COUNTRY_RENDER__=render;
     window.__GLOBAL_NEWS_COUNTRY_RECONCILED__=true;
   }catch(_){/* keep existing feed if API reconciliation is unavailable */}
 }
