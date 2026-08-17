@@ -46,7 +46,8 @@ async function reconcileCountryFeed(){
     const regions={'Asia':['India','China','Japan','South Korea','Indonesia','Singapore','Thailand','Vietnam','Malaysia','Philippines','Pakistan','Bangladesh','Sri Lanka','Nepal'],'Europe':['Austria','Belgium','Bulgaria','Croatia','Cyprus','Czechia','Denmark','Estonia','Finland','France','Germany','Greece','Hungary','Ireland','Italy','Latvia','Lithuania','Luxembourg','Malta','Netherlands','Poland','Portugal','Romania','Slovakia','Slovenia','Spain','Sweden','United Kingdom','Switzerland','Norway','Iceland','Ukraine','Russia','Serbia','Albania','Bosnia and Herzegovina','Montenegro','North Macedonia','Moldova','Belarus'],'North America':['United States','Canada','Mexico'],'South America':['Brazil','Argentina','Chile','Colombia','Peru','Venezuela','Ecuador','Bolivia','Uruguay','Paraguay','Guyana','Suriname'],'Middle East':['Saudi Arabia','United Arab Emirates','Israel','Iran','Iraq','Qatar','Kuwait','Oman','Jordan','Egypt','Türkiye','Bahrain','Lebanon','Yemen'],'Africa':['South Africa','Nigeria','Kenya','Ethiopia','Ghana','Morocco','Algeria','Tunisia','Tanzania','Uganda','Zimbabwe','Rwanda','Senegal','Ivory Coast','Cameroon','Democratic Republic of the Congo'],'Oceania':['Australia','New Zealand','Fiji','Papua New Guinea','Samoa','Tonga']};
     const esc=v=>decodeHtml(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
     const badge=v=>'<span class="badge">'+esc(String(v||'unverified').toUpperCase())+'</span>';
-    const state=()=>{const cat=document.querySelector('#nav button[data-cat].active');const countryMode=document.querySelector('#nav button[data-mode="country"].active');const search=document.querySelector('#q');const country=document.querySelector('#countrySearch');const reg=document.querySelector('#regions button.active');return {category:cat?.dataset.cat||'Home',india:!!countryMode,search:String(search?.value||'').trim().toLowerCase(),country:String(country?.value||'').trim(),region:String(reg?.dataset.region||'All')}};
+    let apiSelectedCountry='';
+    const state=()=>{const cat=document.querySelector('#nav button[data-cat].active');const countryMode=document.querySelector('#nav button[data-mode="country"].active');const search=document.querySelector('#q');const country=document.querySelector('#countrySearch');const reg=document.querySelector('#regions button.active');return {category:cat?.dataset.cat||'Home',india:!!countryMode,search:String(search?.value||'').trim().toLowerCase(),country:apiSelectedCountry||String(country?.value||'').trim(),region:String(reg?.dataset.region||'All')}};
     function render(forcedCountry){
       const st=state();let data=payload.slice();let selected=forcedCountry|| (st.india?'India':st.country);
       if(selected) data=data.filter(s=>countryOf(s).toLowerCase()===selected.toLowerCase());
@@ -62,22 +63,21 @@ async function reconcileCountryFeed(){
     }
     const rerender=()=>setTimeout(()=>render(),0);
     render();
-    document.addEventListener('click',rerender,false);
-    document.addEventListener('input',rerender,false);
+    // The native country picker selects on mousedown and calls preventDefault(), which can suppress click.
+    // Capture the selected country at mousedown so the API-backed renderer always follows the native picker.
+    document.addEventListener('mousedown',event=>{
+      const option=event.target.closest('[data-country]');
+      if(!option) return;
+      apiSelectedCountry=String(option.getAttribute('data-country')||'').trim();
+      setTimeout(()=>render(apiSelectedCountry),0);
+    },false);
+    document.addEventListener('click',event=>{
+      const option=event.target.closest('[data-country]');
+      if(option) apiSelectedCountry=String(option.getAttribute('data-country')||'').trim();
+      rerender();
+    },false);
+    document.addEventListener('input',event=>{if(event.target?.id==='countrySearch'&&!event.target.value.trim())apiSelectedCountry='';rerender()},false);
     document.addEventListener('keydown',e=>{if(e.key==='Enter')setTimeout(()=>render(),0)},false);
-    const countryMenu=document.querySelector('#countryMenu');
-    if(countryMenu){
-      countryMenu.addEventListener('click',event=>{
-        const option=event.target.closest('[data-country]');
-        if(!option) return;
-        const country=option.getAttribute('data-country');
-        setTimeout(()=>{
-          const input=document.querySelector('#countrySearch');
-          if(input) input.value=country;
-          render(country);
-        },0);
-      },false);
-    }
     window.__GLOBAL_NEWS_COUNTRY_RENDER__=render;
     window.__GLOBAL_NEWS_COUNTRY_RECONCILED__=true;
   }catch(_){/* keep existing feed if API reconciliation is unavailable */}
