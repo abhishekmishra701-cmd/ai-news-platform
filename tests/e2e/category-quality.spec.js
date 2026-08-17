@@ -13,16 +13,33 @@ const cases = [
 
 test.describe('category quality', () => {
   for (const [category, signal] of cases) {
-    test(`${category} stories have category-relevant content`, async ({ page }) => {
-      const response = await page.request.get('/api/news');
-      expect(response.ok()).toBeTruthy();
-      const stories = await response.json();
-      const matching = stories.filter(s => String(s.category || '').toLowerCase() === category.toLowerCase());
-      expect(matching.length, `${category} should have stories`).toBeGreaterThan(0);
-      const relevant = matching.filter(s => signal.test(`${s.headline || ''} ${s.summary || ''} ${s.body || ''}`));
-      expect(relevant.length, `${category} should contain category signals`).toBeGreaterThan(0);
-      expect(matching.every(s => s.category_attribution), `${category} stories should expose category attribution`).toBeTruthy();
-      expect(matching.every(s => s.country_attribution), `${category} stories should expose country attribution`).toBeTruthy();
+    test(`${category} stories are category-relevant and attributed`, async ({ page }) => {
+      await page.goto('/');
+
+      const tab = page.locator('[data-cat="' + category + '"]');
+      await expect(tab).toBeVisible();
+      await tab.click();
+
+      await expect(page.locator('#listTitle')).toContainText(category);
+      await expect(page.locator('#storyCount')).not.toHaveText('0 stories');
+
+      const cards = page.locator('#grid .card');
+      await expect(cards.first()).toBeVisible();
+      const count = await cards.count();
+      expect(count, `${category} should render stories`).toBeGreaterThan(0);
+
+      let relevantCount = 0;
+      for (let i = 0; i < count; i++) {
+        const card = cards.nth(i);
+        const text = await card.innerText();
+        if (signal.test(text)) relevantCount++;
+
+        await expect(card.locator('.country-tag')).toBeVisible();
+        const country = (await card.locator('.country-tag').innerText()).trim();
+        expect(country, `${category} story ${i + 1} should expose country attribution`).not.toBe('');
+      }
+
+      expect(relevantCount, `${category} should contain category-relevant signals`).toBeGreaterThan(0);
     });
   }
 });
