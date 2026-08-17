@@ -15,7 +15,7 @@ const API_FIXTURE = [
   }
 ];
 
-test('country feed uses API country attribution instead of the raw database fallback', async ({ page }) => {
+async function mockCountryApi(page) {
   await page.route('**/api/news**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -23,7 +23,10 @@ test('country feed uses API country attribution instead of the raw database fall
       body: JSON.stringify(API_FIXTURE)
     });
   });
+}
 
+test('country feed uses API country attribution instead of the raw database fallback', async ({ page }) => {
+  await mockCountryApi(page);
   await page.goto('/');
 
   await expect(page.locator('#countrySearch')).toBeVisible();
@@ -37,6 +40,7 @@ test('country feed uses API country attribution instead of the raw database fall
 });
 
 test('country attribution fixture preserves explicit attribution metadata', async ({ page }) => {
+  await mockCountryApi(page);
   const apiResponse = await page.request.get('/api/news');
   expect(apiResponse.ok()).toBeTruthy();
   const stories = await apiResponse.json();
