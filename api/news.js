@@ -1,4 +1,5 @@
 import { inferCountryFromStory } from "../lib/country-inference.js";
+import { inferCategoryFromStory } from "../lib/category-inference.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://nfqwnrmwyhcycjsfwqfl.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || "sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl";
@@ -26,7 +27,14 @@ export default async function handler(req, res) {
     if (Array.isArray(data)) {
       data = data.map((story) => {
         const attribution = inferCountryFromStory(story);
-        return attribution.country ? { ...story, country: attribution.country, country_attribution: attribution.inferred ? "inferred_from_explicit_story_signal" : "source_data" } : { ...story, country: story.country || null, country_attribution: story.country ? "source_data" : "unattributed" };
+        const categorization = inferCategoryFromStory(story);
+        return {
+          ...story,
+          country: attribution.country || story.country || null,
+          country_attribution: attribution.country ? (attribution.inferred ? "inferred_from_explicit_story_signal" : "source_data") : "unattributed",
+          category: categorization.category,
+          category_attribution: categorization.inferred ? "inferred_from_story_signal" : "source_data"
+        };
       });
     }
     return res.status(200).json(data);
