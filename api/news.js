@@ -14,31 +14,46 @@ export default async function handler(req, res) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${base}`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Accept: "application/json" }, signal: controller.signal });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${base}`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Accept: "application/json" },
+      signal: controller.signal
+    });
     const text = await response.text();
     if (!response.ok) return res.status(response.status).json({ error: "Supabase request failed", detail: text.slice(0, 500) });
-    let data; try { data = JSON.parse(text); } catch { return res.status(502).json({ error: "Invalid Supabase response" }); }
+    let data;
+    try { data = JSON.parse(text); } catch { return res.status(502).json({ error: "Invalid Supabase response" }); }
+
     if (id && Array.isArray(data) && data[0]) {
       try {
-        const sr = await fetch(`${SUPABASE_URL}/rest/v1/news_sources?story_id=eq.${encodeURIComponent(id)}&select=publisher,url,title&order=created_at.asc`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Accept: "application/json" }, signal: controller.signal });
+        const sr = await fetch(`${SUPABASE_URL}/rest/v1/news_sources?story_id=eq.${encodeURIComponent(id)}&select=publisher,url,title&order=created_at.asc`, {
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Accept: "application/json" },
+          signal: controller.signal
+        });
         if (sr.ok) data[0].sources = await sr.json();
       } catch (_) {}
     }
+
     if (Array.isArray(data)) {
       data = data.map((story) => {
-        const attribution = inferCountryFromStory(story);
-        const categorization = inferCategoryFromStory(story);
+        const country = inferCountryFromStory(story);
+        const category = inferCategoryFromStory(story);
         return {
           ...story,
-          country: attribution.country || story.country || null,
-          country_attribution: attribution.country ? (attribution.inferred ? "inferred_from_explicit_story_signal" : "source_data") : "unattributed",
-          category: categorization.category,
-          category_attribution: categorization.inferred ? "inferred_from_story_signal" : "source_data"
+          country: country.country || story.country || null,
+          country_attribution: country.country
+            ? (country.inferred ? "inferred_from_explicit_story_signal" : "source_data")
+            : "unattributed",
+          category: category.category,
+          category_attribution: category.inferred ? "inferred_from_story_signal" : "source_data"
         };
       });
     }
     return res.status(200).json(data);
   } catch (error) {
-    return res.status(error.name === "AbortError" ? 504 : 502).json({ error: error.name === "AbortError" ? "Upstream timeout" : "Upstream unavailable" });
-  } finally { clearTimeout(timeout); }
+    return res.status(error.name === "AbortError" ? 504 : 502).json({
+      error: error.name === "AbortError" ? "Upstream timeout" : "Upstream unavailable"
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
