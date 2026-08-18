@@ -1,1 +1,1 @@
-Temporary trigger commit for the existing API feed migration workflow. Remove after migration is verified.
+Migration trigger: execute the API-authoritative browser-feed migration and verify the full E2E regression suite.
