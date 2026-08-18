@@ -1,1 +1,1 @@
-Migration trigger: execute the API-authoritative browser-feed migration and verify the full E2E regression suite.
+Migration verified on branch after the targeted /api/news loader patch. Run the complete E2E regression suite before merge.
