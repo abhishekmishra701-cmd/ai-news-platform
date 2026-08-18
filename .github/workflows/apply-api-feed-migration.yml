@@ -1,0 +1,67 @@
+name: Apply API feed migration
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  migrate:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/api-authoritative-feed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 1
+
+      - name: Patch only the browser feed loader
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          pattern = r"async function load\(\)\{.*?\}\nnav\.addEventListener"
+          replacement = """async function load(){try{var r=await fetch('/api/news',{headers:{Accept:'application/json'}});if(!r.ok)throw Error('API '+r.status);stories=await r.json();if(!Array.isArray(stories))throw Error('Invalid API payload');stories.forEach(function(s){if(!s.country)s.country=s.category==='India'?'India':'Global'});window.__GLOBAL_NEWS_COUNTRY_RECONCILED__=true;state.innerHTML='<span class=\"dot\"></span>API connected';notice.textContent='Live news · '+stories.length+' stories available';notice.className='notice';render()}catch(e){window.__GLOBAL_NEWS_COUNTRY_RECONCILED__=false;state.textContent='Connection error';notice.textContent=e.name==='AbortError'?'News feed timed out.':'News feed could not be loaded.';notice.className='notice error';render()}}\nnav.addEventListener"""
+          patched, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('Expected exactly one browser load() function; refusing to modify index.html')
+          if "fetch('/api/news'" in text:
+              raise SystemExit('API migration already present; refusing duplicate patch')
+          path.write_text(patched, encoding='utf-8')
+
+      - name: Verify migration invariants
+        run: |
+          ! grep -q "api('news_stories?" index.html
+          ! grep -q "rest/v1/news_stories" index.html
+          grep -q "fetch('/api/news'" index.html
+          grep -q "__GLOBAL_NEWS_COUNTRY_RECONCILED__" index.html
+          git diff --check
+
+      - name: Commit targeted migration
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --cached -- index.html
+          git commit -m "fix: migrate browser feed to api news"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger E2E on migrated branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: gh workflow run e2e.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
