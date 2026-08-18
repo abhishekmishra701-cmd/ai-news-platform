@@ -40,10 +40,16 @@ test('country feed uses API country attribution across representative countries'
 
   for (const story of API_FIXTURE) {
     const country = story.country;
-    await page.locator('#countrySearch').fill(country);
-    await expect(page.locator('#countryMenu .country-option').filter({ hasText: country })).toBeVisible();
-    await page.locator('#countryMenu .country-option').filter({ hasText: country }).click();
+    const countrySearch = page.locator('#countrySearch');
+    const countryOption = page.locator('#countryMenu .country-option').filter({ hasText: country }).first();
+
+    await countrySearch.fill(country);
+    await expect(countryOption).toBeVisible();
+    await countryOption.click();
+
+    // Wait for the country selection to complete before asserting the rendered feed.
     await expect(page.locator('#listTitle')).toContainText(country);
+    await expect(page.locator('#grid .card')).toHaveCount(1);
     await expect(page.locator('#storyCount')).toHaveText('1 stories');
     await expect(page.locator('.country-tag').filter({ hasText: country }).first()).toBeVisible();
   }
