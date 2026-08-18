@@ -4,17 +4,21 @@ on:
   push:
     branches:
       - fix/api-authoritative-feed
+  pull_request:
+    types: [opened, synchronize]
 
 permissions:
   contents: write
 
 jobs:
   migrate:
-    if: github.event.head_commit.message != 'fix: migrate browser feed to api news'
+    if: github.event_name == 'pull_request' || github.event.head_commit.message != 'fix: migrate browser feed to api news'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout branch
+      - name: Checkout PR branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Patch only the browser feed loader
         shell: python
@@ -48,6 +52,3 @@ jobs:
           git diff --cached -- index.html
           git commit -m "fix: migrate browser feed to api news"
           git push
-
-# Intentional second push after workflow creation: GitHub Actions cannot run a workflow
-# from the same push that first introduces the workflow definition.
