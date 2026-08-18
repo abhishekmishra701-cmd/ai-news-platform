@@ -48,3 +48,6 @@ jobs:
           git diff --cached -- index.html
           git commit -m "fix: migrate browser feed to api news"
           git push
+
+# Intentional second push after workflow creation: GitHub Actions cannot run a workflow
+# from the same push that first introduces the workflow definition.
