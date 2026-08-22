@@ -13,7 +13,7 @@ module.exports = defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'list',
   webServer: externalBaseURL ? undefined : {
-    command: 'npx serve . -l 4173 --no-clipboard',
+    command: 'node tests/e2e/mock-server.js',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
