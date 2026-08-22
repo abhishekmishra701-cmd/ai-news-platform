@@ -48,7 +48,7 @@ test('visible news text never exposes raw numeric HTML entities', async ({ page 
   const open = page.locator('.card .read').first();
   if (await open.count()) {
     await open.click();
-    await expect(page.locator('.story-card')).toBeVisible();
+    await expect(page.locator('.story-reader-card')).toBeVisible();
     const entityPattern = /&(?:amp;)*#(?:x[0-9a-f]+|[0-9]+);/i;
     expect(await page.locator('body').innerText()).not.toMatch(entityPattern);
   }
@@ -60,8 +60,8 @@ test('story reading experience opens and returns to stories', async ({ page }) =
   const open = page.locator('.card .read').first();
   if (await open.count()) {
     await open.click();
-    await expect(page.locator('.story-card')).toBeVisible();
-    await expect(page.locator('.story-card h1')).toBeVisible();
+    await expect(page.locator('.story-reader-card')).toBeVisible();
+    await expect(page.locator('.story-reader-card h1')).toBeVisible();
     const back = page.getByRole('button', { name: '← Back to stories' });
     await expect(back).toHaveCount(1);
     await back.click();
