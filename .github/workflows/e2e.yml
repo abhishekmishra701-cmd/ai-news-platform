@@ -10,9 +10,15 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
+    inputs:
+      e2e_base_url:
+        description: 'Optional deployed URL to test'
+        required: false
+        type: string
 
 jobs:
   e2e:
+    name: Playwright E2E (Desktop + Mobile)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,21 +34,37 @@ jobs:
       - name: Resolve deployed E2E target
         id: target
         run: |
-          if [ -n "${E2E_BASE_URL:-}" ]; then
-            echo "base_url=$E2E_BASE_URL" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ inputs.e2e_base_url }}" ]; then
+            echo "base_url=${{ inputs.e2e_base_url }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "base_url=https://ai-news-platform-c78jxckln-abhishekmishra701-5910s-projects.vercel.app" >> "$GITHUB_OUTPUT"
           else
             echo "base_url=http://127.0.0.1:4173" >> "$GITHUB_OUTPUT"
           fi
-      - name: Run E2E tests
+      - name: Run Desktop E2E
         env:
           E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
-        run: npm run test:e2e
+        run: npx playwright test --project=chromium --reporter=line
+      - name: Run Mobile E2E
+        env:
+          E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
+        run: npx playwright test --project=mobile-chrome --reporter=line
+      - name: Publish E2E summary
+        if: always()
+        run: |
+          {
+            echo "## AI News E2E Regression"
+            echo "- Target: ${{ steps.target.outputs.base_url }}"
+            echo "- Desktop project: chromium"
+            echo "- Mobile project: mobile-chrome"
+            echo "- See job step results above for PASS/FAIL."
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ai-news-playwright-report
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-results/
           if-no-files-found: ignore
