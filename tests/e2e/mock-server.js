@@ -16,8 +16,7 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify(stories));
   }
-  // Mirror production: / is the multilingual bootstrap, while /index.html is the app shell.
-  let file = url.pathname === '/' ? 'multilingual-bootstrap.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
+  let file = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
   const target = path.resolve(root, file);
   if (!target.startsWith(root)) { res.writeHead(403); return res.end(); }
   fs.readFile(target, (err, data) => {
