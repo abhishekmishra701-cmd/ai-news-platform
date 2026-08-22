@@ -45,7 +45,7 @@ test('story cards expose country labels when stories are available', async ({ pa
 test('visible news text never exposes raw numeric HTML entities', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
-  const open = page.locator('.card [data-open]').first();
+  const open = page.locator('.card .read').first();
   if (await open.count()) {
     await open.click();
     await expect(page.locator('.story-card')).toBeVisible();
@@ -57,7 +57,7 @@ test('visible news text never exposes raw numeric HTML entities', async ({ page 
 test('story reading experience opens and returns to stories', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
-  const open = page.locator('.card [data-open]').first();
+  const open = page.locator('.card .read').first();
   if (await open.count()) {
     await open.click();
     await expect(page.locator('.story-card')).toBeVisible();
