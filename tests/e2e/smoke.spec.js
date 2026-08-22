@@ -25,7 +25,7 @@ test('category navigation and search controls work', async ({ page }) => {
   await expect(india).toHaveClass(/active/);
   await expect(page.locator('#listTitle')).toContainText('India');
   await page.locator('#q').fill('test search');
-  await page.locator('#searchBtn')).click();
+  await page.locator('#searchBtn').click();
   await expect(page.locator('#listTitle')).toBeVisible();
 });
 
