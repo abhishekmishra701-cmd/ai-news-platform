@@ -25,7 +25,19 @@ jobs:
         run: npm install
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
+      - name: Resolve deployed E2E target
+        id: target
+        run: |
+          if [ -n "${E2E_BASE_URL:-}" ]; then
+            echo "base_url=$E2E_BASE_URL" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "base_url=https://ai-news-platform-c78jxckln-abhishekmishra701-5910s-projects.vercel.app" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_url=http://127.0.0.1:4173" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run E2E tests
+        env:
+          E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
         run: npm run test:e2e
       - name: Upload Playwright report
         if: always()
