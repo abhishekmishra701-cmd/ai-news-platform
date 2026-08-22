@@ -1,6 +1,7 @@
 const { defineConfig, devices } = require('@playwright/test');
 
-const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:4173';
+const externalBaseURL = process.env.E2E_BASE_URL;
+const baseURL = externalBaseURL || 'http://127.0.0.1:4173';
 
 module.exports = defineConfig({
   testDir: './tests/e2e',
@@ -11,7 +12,7 @@ module.exports = defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'list',
-  webServer: {
+  webServer: externalBaseURL ? undefined : {
     command: 'npx serve . -l 4173 --no-clipboard',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
