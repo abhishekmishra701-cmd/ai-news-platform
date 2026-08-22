@@ -1,11 +1,12 @@
 const { test, expect } = require('@playwright/test');
 
 test.describe('multilingual UI and tricolour regression', () => {
-  test('language selector is single, static UI translates, and tricolour theme is visible', async ({ page }) => {
+  test('language selector is single, static UI translates, final guard loads, and tricolour theme is visible', async ({ page }) => {
     await page.goto('/');
     const selector = page.locator('#global-news-language-selector');
     await expect(selector).toHaveCount(1);
     await expect(selector).toHaveValue('en');
+    await expect(page.locator('#gn-final-theme')).toHaveCount(1);
     await expect(page.locator('.top')).toHaveCSS('border-bottom-color', 'rgb(19, 136, 8)');
     await expect(page.locator('.navwrap')).toHaveCSS('border-top-color', 'rgb(255, 153, 51)');
     await selector.selectOption('zh');
@@ -28,6 +29,15 @@ test.describe('multilingual UI and tricolour regression', () => {
     await expect(selector).toHaveValue('hi');
     await expect(page.locator('.detail-wrap')).toBeVisible();
     await expect(page.locator('body')).toContainText('समाचार सार');
+  });
+
+  test('translation provider errors are never rendered to users', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#global-news-language-selector').selectOption('zh');
+    await page.evaluate(() => { const x=document.createElement('p'); x.textContent='QUERY LENGTH LIMIT EXCEEDED. MAX ALLOWED QUERY: 500 CHARS'; document.body.appendChild(x); });
+    await page.waitForTimeout(400);
+    await expect(page.locator('body')).not.toContainText('QUERY LENGTH LIMIT EXCEEDED');
+    await expect(page.locator('body')).not.toContainText('MAX ALLOWED QUERY');
   });
 
   test('RTL language changes direction without duplicating controls', async ({ page }) => {
