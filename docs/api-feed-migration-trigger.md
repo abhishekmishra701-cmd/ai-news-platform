@@ -1,0 +1,1 @@
+Migration verified on branch after the targeted /api/news loader patch. Run the complete E2E regression suite before merge.

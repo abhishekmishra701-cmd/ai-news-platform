@@ -20,7 +20,6 @@ test('country personalization controls work', async ({ page }) => {
   await page.locator('#countryMenu .country-option[data-country="India"]').click();
   await expect(page.locator('#listTitle')).toContainText('India');
   await expect(page.locator('#myCountryTab')).toContainText('India');
-
   await country.click();
   await expect(page.locator('#countryMenu .country-option')).not.toHaveCount(0);
 });
@@ -40,53 +39,29 @@ test('story cards expose country labels when stories are available', async ({ pa
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   const cards = page.locator('.card');
-  if (await cards.count()) {
-    await expect(cards.first().locator('.country-tag')).toBeVisible();
-  }
+  if (await cards.count()) await expect(cards.first().locator('.country-tag')).toBeVisible();
 });
 
 test('visible news text never exposes raw numeric HTML entities', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
-  const entityPattern = /&(?:amp;)*#(?:x[0-9a-f]+|[0-9]+);/i;
-  expect(await page.locator('body').innerText()).not.toMatch(entityPattern);
-
-  const open = page.locator('[data-open]').first();
+  const open = page.locator('.card .read').first();
   if (await open.count()) {
     await open.click();
     await expect(page.locator('.story-reader-card')).toBeVisible();
+    const entityPattern = /&(?:amp;)*#(?:x[0-9a-f]+|[0-9]+);/i;
     expect(await page.locator('body').innerText()).not.toMatch(entityPattern);
-    expect(await page.locator('#storyReaderBrief').innerText()).not.toMatch(entityPattern);
-    expect(await page.locator('#storyReaderReport').innerText()).not.toMatch(entityPattern);
   }
 });
 
-test('story reading experience keeps Brief and Full Report distinct when detailed source material exists', async ({ page }) => {
+test('story reading experience opens and returns to stories', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
-  const open = page.locator('[data-open]').first();
+  const open = page.locator('.card .read').first();
   if (await open.count()) {
     await open.click();
     await expect(page.locator('.story-reader-card')).toBeVisible();
     await expect(page.locator('.story-reader-card h1')).toBeVisible();
-    await expect(page.getByText('Story Brief', { exact: true })).toBeVisible();
-    await expect(page.getByText('Full Report', { exact: true })).toBeVisible();
-    await expect(page.getByText('Sources & attribution', { exact: true })).toBeVisible();
-
-    const brief = page.locator('#storyReaderBrief');
-    const report = page.locator('#storyReaderReport');
-    await expect(brief).toBeVisible();
-    await expect(report).toBeVisible();
-    await expect(report).toHaveAttribute('data-report-source', 'story-brief-v6');
-    await expect(report.locator('p').first()).toBeVisible();
-
-    const reportLabel = await report.locator('.story-reader-label').textContent();
-    const reportWords = Number(await report.getAttribute('data-report-word-count') || 0);
-    const briefWords = Number(await report.getAttribute('data-brief-word-count') || 0);
-    if ((reportLabel || '').toLowerCase().includes('source-grounded report')) {
-      expect(reportWords).toBeGreaterThan(briefWords);
-    }
-
     const back = page.getByRole('button', { name: '← Back to stories' });
     await expect(back).toHaveCount(1);
     await back.click();

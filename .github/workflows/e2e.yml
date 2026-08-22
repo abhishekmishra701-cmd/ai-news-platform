@@ -8,10 +8,17 @@ on:
       - 'fix/**'
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
+    inputs:
+      e2e_base_url:
+        description: 'Optional deployed URL to test; leave empty to test this exact commit locally'
+        required: false
+        type: string
 
 jobs:
   e2e:
+    name: Playwright E2E (Desktop + Mobile)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,12 +31,40 @@ jobs:
         run: npm install
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Resolve E2E target
+        id: target
+        run: |
+          if [ -n "${{ inputs.e2e_base_url }}" ]; then
+            echo "base_url=${{ inputs.e2e_base_url }}" >> "$GITHUB_OUTPUT"
+            echo "target=deployed URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_url=" >> "$GITHUB_OUTPUT"
+            echo "target=exact checked-out commit via Playwright webServer" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run Desktop E2E
+        env:
+          E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
+        run: npx playwright test --project=chromium --reporter=line
+      - name: Run Mobile E2E
+        env:
+          E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
+        run: npx playwright test --project=mobile-chrome --reporter=line
+      - name: Publish E2E summary
+        if: always()
+        run: |
+          {
+            echo "## AI News E2E Regression"
+            echo "- Target mode: ${{ steps.target.outputs.target }}"
+            echo "- Desktop project: chromium"
+            echo "- Mobile project: mobile-chrome"
+            echo "- See separate Desktop and Mobile step results above for PASS/FAIL."
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ai-news-playwright-report
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-results/
           if-no-files-found: ignore
