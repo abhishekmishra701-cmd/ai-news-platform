@@ -1,55 +1,25 @@
-/* Global News multilingual layer.
- * Registry-based so additional languages can be added without changing app logic.
- */
-(function () {
-  'use strict';
-
-  const STORAGE_KEY = 'globalNewsLanguage';
-  const languages = [
-    ['en', 'English'], ['hi', 'हिन्दी'], ['zh', '中文'], ['es', 'Español'],
-    ['ar', 'العربية'], ['fr', 'Français'], ['bn', 'বাংলা'], ['pt', 'Português'],
-    ['ru', 'Русский'], ['ur', 'اردو'], ['id', 'Bahasa Indonesia']
-  ];
-
-  const dictionary = {
-    en: { home:'Home', search:'Search', language:'Language', latest:'Latest', loading:'Loading…' },
-    hi: { home:'होम', search:'खोजें', language:'भाषा', latest:'नवीनतम', loading:'लोड हो रहा है…' },
-    zh: { home:'首页', search:'搜索', language:'语言', latest:'最新', loading:'加载中…' },
-    es: { home:'Inicio', search:'Buscar', language:'Idioma', latest:'Últimas', loading:'Cargando…' },
-    ar: { home:'الرئيسية', search:'بحث', language:'اللغة', latest:'الأحدث', loading:'جارٍ التحميل…' },
-    fr: { home:'Accueil', search:'Rechercher', language:'Langue', latest:'Dernières', loading:'Chargement…' },
-    bn: { home:'হোম', search:'অনুসন্ধান', language:'ভাষা', latest:'সর্বশেষ', loading:'লোড হচ্ছে…' },
-    pt: { home:'Início', search:'Pesquisar', language:'Idioma', latest:'Mais recentes', loading:'Carregando…' },
-    ru: { home:'Главная', search:'Поиск', language:'Язык', latest:'Последние', loading:'Загрузка…' },
-    ur: { home:'ہوم', search:'تلاش', language:'زبان', latest:'تازہ ترین', loading:'لوڈ ہو رہا ہے…' },
-    id: { home:'Beranda', search:'Cari', language:'Bahasa', latest:'Terbaru', loading:'Memuat…' }
-  };
-
-  function normalize(code) { return dictionary[code] ? code : 'en'; }
-  function getLanguage() { return normalize(localStorage.getItem(STORAGE_KEY) || 'en'); }
-  function setLanguage(code) {
-    code = normalize(code);
-    localStorage.setItem(STORAGE_KEY, code);
-    document.documentElement.lang = code;
-    document.documentElement.dir = (code === 'ar' || code === 'ur') ? 'rtl' : 'ltr';
-    window.__GLOBAL_NEWS_LANGUAGE__ = code;
-    window.__GLOBAL_NEWS_I18N__ = dictionary[code];
-    document.dispatchEvent(new CustomEvent('globalNewsLanguageChange', { detail: { code: code, strings: dictionary[code] } }));
-    return code;
-  }
-
-  function buildSelector() {
-    const select = document.createElement('select');
-    select.id = 'global-news-language-selector';
-    select.setAttribute('aria-label', 'Language');
-    languages.forEach(function (item) {
-      const option = document.createElement('option'); option.value = item[0]; option.textContent = item[1]; select.appendChild(option);
-    });
-    select.value = getLanguage();
-    select.addEventListener('change', function () { setLanguage(select.value); });
-    return select;
-  }
-
-  window.GlobalNewsI18n = { languages: languages, dictionary: dictionary, getLanguage: getLanguage, setLanguage: setLanguage, buildSelector: buildSelector };
-  setLanguage(getLanguage());
+/* Global News scalable multilingual layer. */
+(function(){'use strict';
+var STORAGE_KEY='globalNewsLanguage';
+var languages=[['en','English'],['hi','हिन्दी'],['zh','中文'],['es','Español'],['ar','العربية'],['fr','Français'],['bn','বাংলা'],['pt','Português'],['ru','Русский'],['ur','اردو'],['id','Bahasa Indonesia']];
+var dictionary={
+en:{home:'Home',india:'India',world:'World',geopolitics:'Geopolitics',relations:'International Relations',business:'Business',technology:'Technology',entertainment:'Entertainment',sports:'Sports',science:'Science',climate:'Climate',search:'Search',searchPlaceholder:'Search global stories, topics, countries or sources…',loading:'Loading live news…',explore:'🌍 Explore Worldwide',regions:'Regions & countries',country:'Country',countryPlaceholder:'Search or select country…',topStories:'Top Stories · Worldwide',language:'Language'},
+hi:{home:'होम',india:'भारत',world:'विश्व',geopolitics:'भू-राजनीति',relations:'अंतरराष्ट्रीय संबंध',business:'व्यापार',technology:'प्रौद्योगिकी',entertainment:'मनोरंजन',sports:'खेल',science:'विज्ञान',climate:'जलवायु',search:'खोजें',searchPlaceholder:'वैश्विक समाचार, विषय, देश या स्रोत खोजें…',loading:'लाइव समाचार लोड हो रहे हैं…',explore:'🌍 दुनिया भर में देखें',regions:'क्षेत्र और देश',country:'देश',countryPlaceholder:'देश खोजें या चुनें…',topStories:'मुख्य समाचार · विश्वव्यापी',language:'भाषा'},
+zh:{home:'首页',india:'印度',world:'世界',geopolitics:'地缘政治',relations:'国际关系',business:'商业',technology:'科技',entertainment:'娱乐',sports:'体育',science:'科学',climate:'气候',search:'搜索',searchPlaceholder:'搜索全球新闻、主题、国家或来源…',loading:'正在加载新闻…',explore:'🌍 探索全球',regions:'地区和国家',country:'国家',countryPlaceholder:'搜索或选择国家…',topStories:'头条新闻 · 全球',language:'语言'},
+es:{home:'Inicio',india:'India',world:'Mundo',geopolitics:'Geopolítica',relations:'Relaciones internacionales',business:'Negocios',technology:'Tecnología',entertainment:'Entretenimiento',sports:'Deportes',science:'Ciencia',climate:'Clima',search:'Buscar',searchPlaceholder:'Busca noticias, temas, países o fuentes…',loading:'Cargando noticias…',explore:'🌍 Explorar el mundo',regions:'Regiones y países',country:'País',countryPlaceholder:'Busca o selecciona un país…',topStories:'Noticias principales · Mundial',language:'Idioma'},
+ar:{home:'الرئيسية',india:'الهند',world:'العالم',geopolitics:'الجغرافيا السياسية',relations:'العلاقات الدولية',business:'الأعمال',technology:'التكنولوجيا',entertainment:'الترفيه',sports:'الرياضة',science:'العلوم',climate:'المناخ',search:'بحث',searchPlaceholder:'ابحث في الأخبار والموضوعات والدول والمصادر…',loading:'جارٍ تحميل الأخبار…',explore:'🌍 استكشف العالم',regions:'المناطق والدول',country:'الدولة',countryPlaceholder:'ابحث عن دولة أو اخترها…',topStories:'أهم الأخبار · عالميًا',language:'اللغة'},
+fr:{home:'Accueil',india:'Inde',world:'Monde',geopolitics:'Géopolitique',relations:'Relations internationales',business:'Économie',technology:'Technologie',entertainment:'Divertissement',sports:'Sports',science:'Science',climate:'Climat',search:'Rechercher',searchPlaceholder:'Rechercher des actualités, sujets, pays ou sources…',loading:'Chargement des actualités…',explore:'🌍 Explorer le monde',regions:'Régions et pays',country:'Pays',countryPlaceholder:'Rechercher ou sélectionner un pays…',topStories:'À la une · Monde',language:'Langue'},
+bn:{home:'হোম',india:'ভারত',world:'বিশ্ব',geopolitics:'ভূরাজনীতি',relations:'আন্তর্জাতিক সম্পর্ক',business:'ব্যবসা',technology:'প্রযুক্তি',entertainment:'বিনোদন',sports:'খেলাধুলা',science:'বিজ্ঞান',climate:'জলবায়ু',search:'অনুসন্ধান',searchPlaceholder:'বিশ্ব সংবাদ, বিষয়, দেশ বা উৎস খুঁজুন…',loading:'লাইভ সংবাদ লোড হচ্ছে…',explore:'🌍 বিশ্বজুড়ে দেখুন',regions:'অঞ্চল ও দেশ',country:'দেশ',countryPlaceholder:'দেশ খুঁজুন বা নির্বাচন করুন…',topStories:'শীর্ষ সংবাদ · বিশ্বব্যাপী',language:'ভাষা'},
+pt:{home:'Início',india:'Índia',world:'Mundo',geopolitics:'Geopolítica',relations:'Relações internacionais',business:'Negócios',technology:'Tecnologia',entertainment:'Entretenimento',sports:'Esportes',science:'Ciência',climate:'Clima',search:'Pesquisar',searchPlaceholder:'Pesquise notícias, temas, países ou fontes…',loading:'Carregando notícias…',explore:'🌍 Explorar o mundo',regions:'Regiões e países',country:'País',countryPlaceholder:'Pesquise ou selecione um país…',topStories:'Principais notícias · Mundial',language:'Idioma'},
+ru:{home:'Главная',india:'Индия',world:'Мир',geopolitics:'Геополитика',relations:'Международные отношения',business:'Бизнес',technology:'Технологии',entertainment:'Развлечения',sports:'Спорт',science:'Наука',climate:'Климат',search:'Поиск',searchPlaceholder:'Ищите новости, темы, страны или источники…',loading:'Загрузка новостей…',explore:'🌍 Исследовать мир',regions:'Регионы и страны',country:'Страна',countryPlaceholder:'Найдите или выберите страну…',topStories:'Главные новости · Мир',language:'Язык'},
+ur:{home:'ہوم',india:'بھارت',world:'دنیا',geopolitics:'جغرافیائی سیاست',relations:'بین الاقوامی تعلقات',business:'کاروبار',technology:'ٹیکنالوجی',entertainment:'تفریح',sports:'کھیل',science:'سائنس',climate:'آب و ہوا',search:'تلاش',searchPlaceholder:'عالمی خبریں، موضوعات، ممالک یا ذرائع تلاش کریں…',loading:'لائیو خبریں لوڈ ہو رہی ہیں…',explore:'🌍 دنیا دریافت کریں',regions:'خطے اور ممالک',country:'ملک',countryPlaceholder:'ملک تلاش کریں یا منتخب کریں…',topStories:'اہم خبریں · عالمی',language:'زبان'},
+id:{home:'Beranda',india:'India',world:'Dunia',geopolitics:'Geopolitik',relations:'Hubungan Internasional',business:'Bisnis',technology:'Teknologi',entertainment:'Hiburan',sports:'Olahraga',science:'Sains',climate:'Iklim',search:'Cari',searchPlaceholder:'Cari berita, topik, negara, atau sumber…',loading:'Memuat berita…',explore:'🌍 Jelajahi Dunia',regions:'Wilayah & negara',country:'Negara',countryPlaceholder:'Cari atau pilih negara…',topStories:'Berita Utama · Dunia',language:'Bahasa'}
+};
+function code(){var c=localStorage.getItem(STORAGE_KEY)||'en';return dictionary[c]?c:'en'}
+function t(){return dictionary[code()]||dictionary.en}
+function apply(){var d=t();document.documentElement.lang=code();document.documentElement.dir=(code()==='ar'||code()==='ur')?'rtl':'ltr';var nav=document.querySelectorAll('#nav button');var keys=['home','india','india','world','geopolitics','relations','business','technology','entertainment','sports','science','climate'];nav.forEach(function(el,i){if(i===1&&el.id==='myCountryTab'&&el.textContent.indexOf('🇮🇳')===0){el.textContent='🇮🇳 '+d.india}else if(keys[i])el.textContent=d[keys[i]]});var q=document.getElementById('q');if(q)q.placeholder=d.searchPlaceholder;var search=document.getElementById('search');if(search)search.textContent=d.search;var notice=document.getElementById('notice');if(notice&&/Loading live news|लाइव समाचार लोड/.test(notice.textContent))notice.textContent=d.loading;var title=document.querySelector('.explorer-title');if(title){var span=title.querySelector('span');title.childNodes[0].nodeValue=d.explore+' ';if(span)span.textContent=d.regions}var label=document.querySelector('.country-picker label');if(label)label.textContent=d.country;var cs=document.getElementById('countrySearch');if(cs)cs.placeholder=d.countryPlaceholder;var list=document.getElementById('listTitle');if(list&&/Top Stories · Worldwide|मुख्य समाचार/.test(list.textContent))list.textContent=d.topStories;var sel=document.getElementById('global-news-language-selector');if(sel)sel.value=code()}
+function setLanguage(c){if(!dictionary[c])c='en';localStorage.setItem(STORAGE_KEY,c);window.__GLOBAL_NEWS_LANGUAGE__=c;window.__GLOBAL_NEWS_I18N__=dictionary[c];apply();document.dispatchEvent(new CustomEvent('globalNewsLanguageChange',{detail:{code:c,strings:dictionary[c]}}));return c}
+function mount(){if(document.getElementById('global-news-language-selector'))return;var bar=document.querySelector('.top .bar');if(!bar)return;var wrap=document.createElement('label');wrap.className='global-news-language';wrap.style.cssText='display:flex;align-items:center;gap:7px;margin-right:14px;font-size:12px;font-weight:700';wrap.textContent=t().language;var sel=document.createElement('select');sel.id='global-news-language-selector';sel.setAttribute('aria-label','Language');sel.style.cssText='border:1px solid #475467;border-radius:8px;padding:7px;background:#fff;color:#101828;font:inherit';languages.forEach(function(x){var o=document.createElement('option');o.value=x[0];o.textContent=x[1];sel.appendChild(o)});sel.value=code();sel.onchange=function(){setLanguage(sel.value);wrap.firstChild.nodeValue=t().language};wrap.appendChild(sel);var state=document.getElementById('state');bar.insertBefore(wrap,state||null);apply()}
+window.GlobalNewsI18n={languages:languages,dictionary:dictionary,getLanguage:code,setLanguage:setLanguage,apply:apply};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();
