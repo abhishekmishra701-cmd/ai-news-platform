@@ -10,7 +10,8 @@ const stories = Object.entries(categories).map(([category, [headline]], i) => ({
 }));
 const root = process.cwd();
 const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg' };
-http.createServer((req, res) => {
+
+const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/api/news') {
     res.writeHead(200, { 'content-type': 'application/json' });
@@ -24,4 +25,21 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': types[path.extname(target)] || 'application/octet-stream' });
     res.end(data);
   });
-}).listen(4173, '127.0.0.1', () => console.log('E2E mock server listening on 4173'));
+});
+
+let closing = false;
+function shutdown(signal) {
+  if (closing) return;
+  closing = true;
+  console.log(`E2E mock server received ${signal}; shutting down`);
+  const forceTimer = setTimeout(() => process.exit(0), 5_000);
+  server.close(() => {
+    clearTimeout(forceTimer);
+    process.exit(0);
+  });
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+server.listen(4173, '127.0.0.1', () => console.log('E2E mock server listening on 4173'));
