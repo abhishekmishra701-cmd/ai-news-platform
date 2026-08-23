@@ -17,9 +17,7 @@ test('language selector exposes expanded most-spoken language coverage', async (
   await expect(selector).toBeVisible();
   const values = await selector.locator('option').evaluateAll(options => options.map(o => o.value));
   expect(values.length).toBeGreaterThanOrEqual(20);
-  for (const language of ['en', 'zh', 'hi', 'es', 'fr', 'ar', 'bn', 'pt', 'ru', 'ur', 'id', 'de', 'ja', 'mr', 'te', 'tr', 'ta', 'vi', 'ko', 'it']) {
-    expect(values).toContain(language);
-  }
+  for (const language of ['en', 'zh', 'hi', 'es', 'fr', 'ar', 'bn', 'pt', 'ru', 'ur', 'id', 'de', 'ja', 'mr', 'te', 'tr', 'ta', 'vi', 'ko', 'it']) expect(values).toContain(language);
   await selector.selectOption('hi');
   await expect(page.locator('html')).toHaveAttribute('lang', 'hi');
   await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
@@ -59,7 +57,7 @@ test('story cards expose country labels when stories are available', async ({ pa
   if (await cards.count()) await expect(cards.first().locator('.country-tag')).toBeVisible();
 });
 
-test('Story Reader enriches Full Report from the source-grounded brief service', async ({ page }) => {
+test('Story Reader enriches Full Report from the source-grounded v2 service', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   const open = page.locator('.card .read').first();
@@ -68,7 +66,7 @@ test('Story Reader enriches Full Report from the source-grounded brief service',
   await expect(page.locator('.story-reader-card')).toBeVisible();
   const report = page.locator('#storyReaderReport');
   await expect(report).toBeVisible();
-  await expect.poll(async () => report.getAttribute('data-report-source'), { timeout: 12000 }).toBe('story-brief-v6');
+  await expect.poll(async () => report.getAttribute('data-report-source'), { timeout: 12000 }).toBe('story-brief-v2');
   await expect(report.locator('p').first()).toBeVisible();
   await expect(report).not.toContainText('Limited source content available.');
 });
