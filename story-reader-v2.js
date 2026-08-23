@@ -10,5 +10,7 @@ function decodeHtml(value){let current=String(value??'');for(let i=0;i<4;i++){co
 function esc(v){return decodeHtml(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
 function enhanceReport(data){const report=Array.isArray(data?.report?.paragraphs)?data.report.paragraphs.filter(Boolean):[];const box=document.querySelector('#storyReaderReport');if(!box||!report.length)return;box.innerHTML='<div class="story-reader-label">'+esc(data?.report?.label||'Full report')+'</div>'+report.map(x=>'<p>'+esc(x)+'</p>').join('');box.dataset.locale=String(data?.locale||getActiveLocale())}
 window.fetch=async function(...args){let [input,init]=withLocale(args[0],args[1]);const response=await originalFetch(input,init);try{const url=typeof input==='string'?input:(input&&input.url)||'';if(String(url).includes(STORY_ENDPOINT))response.clone().json().then(data=>setTimeout(()=>enhanceReport(data),75)).catch(()=>{})}catch(_){}return response};
+const style=document.createElement('style');style.textContent='.top{border-top:3px solid #ff9933;border-bottom:3px solid #138808}';document.head.appendChild(style);
 const script=document.createElement('script');script.src='./story-reader-core-v2.js?v=5';script.async=false;document.head.appendChild(script);
+const i18n=document.createElement('script');i18n.src='./i18n-multilingual.js?v=5';i18n.async=false;document.head.appendChild(i18n);
 })();
