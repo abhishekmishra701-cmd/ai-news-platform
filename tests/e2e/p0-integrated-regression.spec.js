@@ -9,6 +9,19 @@ test.describe('Phase 6A P0 integrated regression', () => {
     await page.locator('#global-news-language-selector').selectOption('hi');
     await expect(page.locator('[data-mode="home"]')).toHaveText('होम');
     await expect(page.locator('#search')).toHaveText('खोजें');
+    await page.locator('#global-news-language-selector').selectOption('ur');
+    await expect(page.locator('[data-mode="home"]')).toHaveText('ہوم');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  });
+
+  test('category tabs use the authoritative API path and switch feed', async ({ page }) => {
+    const calls=[];
+    page.on('request', r => { if (r.url().includes('/api/news?category=')) calls.push(r.url()); });
+    await page.goto('/');
+    await page.locator('[data-cat="Geopolitics"]').click();
+    await expect(page.locator('#listTitle')).toContainText('Geopolitics');
+    await expect(page.locator('#storyCount')).not.toHaveText('0 stories');
+    await expect.poll(() => calls.some(u => u.includes('category=Geopolitics'))).toBeTruthy();
   });
 
   test('Home clears selected country UI state', async ({ page }) => {
