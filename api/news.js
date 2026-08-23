@@ -3,7 +3,8 @@ import { inferCategoryFromStory } from '../lib/category-inference.js';
 const SUPABASE_URL=process.env.SUPABASE_URL||'https://nfqwnrmwyhcycjsfwqfl.supabase.co';
 const SUPABASE_KEY=process.env.SUPABASE_ANON_KEY||'sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl';
 const GDELT_URL='https://api.gdeltproject.org/api/v2/doc/doc';
-const clean=v=>String(v??'').replace(/<!\[CDATA\[|\]\]>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/\s+/g,' ').trim();
+const decodeEntities=v=>String(v??'').replace(/&#x([0-9a-f]+);?/gi,(_,h)=>{try{return String.fromCodePoint(parseInt(h,16))}catch{return ' '}}).replace(/&#([0-9]+);?/g,(_,n)=>{try{return String.fromCodePoint(parseInt(n,10))}catch{return ' '}}).replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+const clean=v=>decodeEntities(String(v??'').replace(/<!\[CDATA\[|\]\]>/gi,' ')).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
 const key=v=>clean(v).toLowerCase();
 const sanitize=s=>({...s,headline:clean(s.headline||s.title),summary:clean(s.summary||s.description),body:clean(s.body||s.content)});
 async function text(url,timeout=8000){const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{signal:c.signal,headers:{Accept:'application/xml,text/xml,text/html,application/json','User-Agent':'GlobalNewsPlatform/1.0'}});if(!r.ok)throw Error(`HTTP ${r.status}`);return await r.text()}finally{clearTimeout(t)}}
