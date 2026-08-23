@@ -2,72 +2,63 @@ name: AI News E2E
 
 on:
   push:
-    branches:
-      - main
-      - 'feat/**'
-      - 'fix/**'
+    branches: [main, 'feat/**', 'fix/**']
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
     inputs:
       e2e_base_url:
-        description: 'Optional deployed URL to test; leave empty to test this exact commit locally'
+        description: 'Optional deployed URL to test'
         required: false
         type: string
 
 jobs:
-  e2e:
-    name: Playwright E2E (Desktop + Mobile)
+  desktop:
+    name: Playwright Desktop E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install dependencies
-        run: npm install
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-      - name: Resolve E2E target
-        id: target
-        run: |
-          if [ -n "${{ inputs.e2e_base_url }}" ]; then
-            echo "base_url=${{ inputs.e2e_base_url }}" >> "$GITHUB_OUTPUT"
-            echo "target=deployed URL" >> "$GITHUB_OUTPUT"
-          else
-            echo "base_url=" >> "$GITHUB_OUTPUT"
-            echo "target=exact checked-out commit via Playwright webServer" >> "$GITHUB_OUTPUT"
-          fi
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
       - name: Run Desktop E2E
-        timeout-minutes: 7
         env:
-          E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
+          E2E_BASE_URL: ${{ inputs.e2e_base_url }}
         run: timeout 390s npx playwright test --project=chromium --reporter=line
-      - name: Run Mobile E2E
-        timeout-minutes: 7
-        env:
-          E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
-        run: timeout 390s npx playwright test --project=mobile-chrome --reporter=line
-      - name: Publish E2E summary
-        if: always()
-        run: |
-          {
-            echo "## AI News E2E Regression"
-            echo "- Target mode: ${{ steps.target.outputs.target }}"
-            echo "- Desktop project: chromium (max 6.5 min)"
-            echo "- Mobile project: mobile-chrome (max 6.5 min)"
-            echo "- Job timeout: 20 min"
-            echo "- See separate Desktop and Mobile step results above for PASS/FAIL."
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload Playwright report
+      - name: Upload Desktop report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ai-news-playwright-report
+          name: ai-news-playwright-desktop
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  mobile:
+    name: Playwright Mobile E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - name: Run Mobile E2E
+        env:
+          E2E_BASE_URL: ${{ inputs.e2e_base_url }}
+        run: timeout 390s npx playwright test --project=mobile-chrome --reporter=line
+      - name: Upload Mobile report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-news-playwright-mobile
           path: |
             playwright-report/
             test-results/
