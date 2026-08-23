@@ -1,1 +1,1 @@
-(()=>{'use strict';if(window.__GLOBAL_NEWS_STORY_READER_LOADER__)return;window.__GLOBAL_NEWS_STORY_READER_LOADER__=true;const script=document.createElement('script');script.src='./story-reader-core-v2.js?v=6';script.async=false;document.head.appendChild(script)})();
+(()=>{'use strict';if(window.__GLOBAL_NEWS_STORY_READER_LOADER__)return;window.__GLOBAL_NEWS_STORY_READER_LOADER__=true;const script=document.createElement('script');script.src='./story-reader-core-v2.js?v=7';script.async=false;document.head.appendChild(script)})();
