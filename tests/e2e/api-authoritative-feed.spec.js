@@ -29,7 +29,7 @@ test('browser feed uses /api/news as its authoritative story source', async ({ p
   });
 
   await page.goto('/');
-  await expect(page.getByText(story.headline, { exact: true })).toBeVisible();
+  await expect(page.getByText(story.headline, { exact: true }).first()).toBeVisible();
   await expect(page.locator('#notice')).toContainText('1 stories available');
 
   expect(apiRequests.length).toBeGreaterThan(0);
