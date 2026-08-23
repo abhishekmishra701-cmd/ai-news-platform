@@ -59,6 +59,20 @@ test('story cards expose country labels when stories are available', async ({ pa
   if (await cards.count()) await expect(cards.first().locator('.country-tag')).toBeVisible();
 });
 
+test('Story Reader enriches Full Report from the source-grounded brief service', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  const open = page.locator('.card .read').first();
+  if (!(await open.count())) test.skip();
+  await open.click();
+  await expect(page.locator('.story-reader-card')).toBeVisible();
+  const report = page.locator('#storyReaderReport');
+  await expect(report).toBeVisible();
+  await expect.poll(async () => report.getAttribute('data-report-source'), { timeout: 12000 }).toBe('story-brief-v6');
+  await expect(report.locator('p').first()).toBeVisible();
+  await expect(report).not.toContainText('Limited source content available.');
+});
+
 test('visible news text never exposes raw numeric HTML entities', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
