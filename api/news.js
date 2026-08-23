@@ -79,6 +79,11 @@ async function fetchNewsData(req, signal) {
 }
 
 export default async function handler(req, res) {
+  // Live news must never be served as a stale 304/empty browser response.
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
   const id = typeof req.query?.id === "string" ? req.query.id : null;
   const fields = "id,slug,headline,summary,body,category,country,status,verification_status,source_count,correction_notice,published_at,created_at,updated_at";
