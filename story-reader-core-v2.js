@@ -10,9 +10,9 @@ function initStoryReader(){
  const decode=v=>{let s=String(v??'');for(let i=0;i<8;i++){const t=document.createElement('textarea');t.innerHTML=s;if(t.value===s)break;s=t.value}return s};
  const esc=v=>decode(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const norm=v=>decode(v).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
- const overlap=(a,b)=>{const A=new Set(norm(a).split(' ').filter(w=>w.length>2)),B=new Set(norm(b).split(' ').filter(w=>w.length>2));let hit=0;for(const w of A)if(B.has(w))hit++;return hit/Math.max(1,Math.min(A.size,B.size))};
- const reportFromBody=(body,points)=>String(body||'').split(/\n{2,}|(?<=[.!?])\s+(?=[A-Z])/).map(x=>x.trim()).filter(x=>x.length>60&&!points.some(p=>overlap(x,p)>.7));
- const uniqueReport=(paras,points,body)=>{const out=[];for(const p of paras.filter(Boolean)){if(out.some(x=>overlap(x,p)>.86))continue;if(points.some(x=>overlap(x,p)>.68))continue;out.push(p)}if(out.length)return out;const bodyDistinct=reportFromBody(body,points);return bodyDistinct};
+ const overlap=(a,b)=>{const x=norm(a),y=norm(b);if(!x||!y)return 0;if(x.includes(y)||y.includes(x))return 1;const A=new Set(x.split(' ').filter(w=>w.length>2)),B=new Set(y.split(' ').filter(w=>w.length>2));let hit=0;for(const w of A)if(B.has(w))hit++;return hit/Math.max(1,Math.min(A.size,B.size))};
+ const reportFromBody=(body,points)=>String(body||'').split(/\n{2,}|(?<=[.!?])\s+(?=[A-Z])/).map(x=>x.trim()).filter(x=>x.length>80&&!points.some(p=>overlap(x,p)>=.45));
+ const uniqueReport=(paras,points,body)=>{const out=[];for(const p of paras.filter(Boolean)){if(out.some(x=>overlap(x,p)>=.55))continue;if(points.some(x=>overlap(x,p)>=.45))continue;out.push(p)}return out.length?out:reportFromBody(body,points)};
  const api=path=>fetch(SUPABASE_URL+'/rest/v1/'+path,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,Accept:'application/json'}});
  const briefApi=id=>fetch(SUPABASE_URL+'/functions/v1/story-brief',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({story_id:id})});
  function back(){detail.classList.add('hidden');home.classList.remove('hidden');article.innerHTML='';window.scrollTo(0,0)}
