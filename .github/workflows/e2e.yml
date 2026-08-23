@@ -20,6 +20,7 @@ jobs:
   e2e:
     name: Playwright E2E (Desktop + Mobile)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,21 +43,24 @@ jobs:
             echo "target=exact checked-out commit via Playwright webServer" >> "$GITHUB_OUTPUT"
           fi
       - name: Run Desktop E2E
+        timeout-minutes: 7
         env:
           E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
-        run: npx playwright test --project=chromium --reporter=line
+        run: timeout 390s npx playwright test --project=chromium --reporter=line
       - name: Run Mobile E2E
+        timeout-minutes: 7
         env:
           E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
-        run: npx playwright test --project=mobile-chrome --reporter=line
+        run: timeout 390s npx playwright test --project=mobile-chrome --reporter=line
       - name: Publish E2E summary
         if: always()
         run: |
           {
             echo "## AI News E2E Regression"
             echo "- Target mode: ${{ steps.target.outputs.target }}"
-            echo "- Desktop project: chromium"
-            echo "- Mobile project: mobile-chrome"
+            echo "- Desktop project: chromium (max 6.5 min)"
+            echo "- Mobile project: mobile-chrome (max 6.5 min)"
+            echo "- Job timeout: 20 min"
             echo "- See separate Desktop and Mobile step results above for PASS/FAIL."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload Playwright report
