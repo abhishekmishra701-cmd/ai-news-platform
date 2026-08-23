@@ -28,7 +28,18 @@ jobs:
       - name: Run Desktop E2E
         env:
           E2E_BASE_URL: ${{ inputs.e2e_base_url }}
-        run: timeout 390s npx playwright test --project=chromium --reporter=line
+        run: |
+          if [ -z "$E2E_BASE_URL" ]; then
+            node tests/e2e/mock-server.js > /tmp/e2e-server.log 2>&1 &
+            SERVER_PID=$!
+            trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+            for i in {1..30}; do
+              curl -fsS http://127.0.0.1:4173/ >/dev/null && break
+              sleep 1
+            done
+            curl -fsS http://127.0.0.1:4173/ >/dev/null
+          fi
+          timeout 390s npx playwright test --project=chromium --reporter=line
       - name: Upload Desktop report
         if: always()
         uses: actions/upload-artifact@v4
@@ -37,6 +48,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            /tmp/e2e-server.log
           if-no-files-found: ignore
 
   mobile:
@@ -53,7 +65,18 @@ jobs:
       - name: Run Mobile E2E
         env:
           E2E_BASE_URL: ${{ inputs.e2e_base_url }}
-        run: timeout 390s npx playwright test --project=mobile-chrome --reporter=line
+        run: |
+          if [ -z "$E2E_BASE_URL" ]; then
+            node tests/e2e/mock-server.js > /tmp/e2e-server.log 2>&1 &
+            SERVER_PID=$!
+            trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+            for i in {1..30}; do
+              curl -fsS http://127.0.0.1:4173/ >/dev/null && break
+              sleep 1
+            done
+            curl -fsS http://127.0.0.1:4173/ >/dev/null
+          fi
+          timeout 390s npx playwright test --project=mobile-chrome --reporter=line
       - name: Upload Mobile report
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,4 +85,5 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            /tmp/e2e-server.log
           if-no-files-found: ignore
