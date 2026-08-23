@@ -1,3 +1,4 @@
+// Phase 6A final E2E gate: run the full desktop + mobile regression suite.
 const { test, expect } = require('@playwright/test');
 
 test('news homepage loads with core UI', async ({ page }) => {
