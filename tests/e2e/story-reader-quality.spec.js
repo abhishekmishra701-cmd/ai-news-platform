@@ -48,21 +48,11 @@ test.describe('Story Reader content quality', () => {
 
   test('REAL integration: live-feed story with no body retrieves publisher content into Full Report', async ({ page }) => {
     await page.route('**/api/news', async route => {
-      const story={
-        id:'real-source-e2e',
-        headline:'Malnutrition: a pervasive problem, but one that can be fixed',
-        summary:'A live-feed item with a headline and source attribution but no stored article body.',
-        body:'',
-        country:'Global',
-        category:'World',
-        verification_status:'developing',
-        source_count:1,
-        sources:[{publisher:'Devpolicy Blog',title:'Malnutrition: a pervasive problem, but one that can be fixed',url:REAL_SOURCE}]
-      };
+      const story={id:'real-source-e2e',headline:'Malnutrition: a pervasive problem, but one that can be fixed',summary:'A live-feed item with a headline and source attribution but no stored article body.',body:'',country:'Global',category:'World',verification_status:'developing',source_count:1,sources:[{publisher:'Devpolicy Blog',title:'Malnutrition: a pervasive problem, but one that can be fixed',url:REAL_SOURCE}]};
       await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([story])});
     });
     await page.goto('/');
-    const open=page.locator('[data-open="real-source-e2e"]');
+    const open=page.locator('[data-open="real-source-e2e"]').first();
     await expect(open).toBeVisible();
     await open.click();
     await expect(page.locator('#storyReaderReport')).toContainText('double burden of malnutrition', {timeout:30000});
@@ -76,11 +66,7 @@ test.describe('Story Reader content quality', () => {
     await page.goto('/');
     const result=await page.evaluate(async ({ source }) => {
       const key='sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl';
-      const response=await fetch('https://nfqwnrmwyhcycjsfwqfl.supabase.co/functions/v1/story-brief-v2',{
-        method:'POST',
-        headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key},
-        body:JSON.stringify({story:{id:'endpoint-real-e2e',headline:'Malnutrition: a pervasive problem, but one that can be fixed',summary:'A live-feed story with no stored body.',body:'',category:'World',verification_status:'developing',source_count:1,sources:[{publisher:'Devpolicy Blog',title:'Malnutrition: a pervasive problem, but one that can be fixed',url:source}]}})
-      });
+      const response=await fetch('https://nfqwnrmwyhcycjsfwqfl.supabase.co/functions/v1/story-brief-v2',{method:'POST',headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key},body:JSON.stringify({story:{id:'endpoint-real-e2e',headline:'Malnutrition: a pervasive problem, but one that can be fixed',summary:'A live-feed story with no stored body.',body:'',category:'World',verification_status:'developing',source_count:1,sources:[{publisher:'Devpolicy Blog',title:'Malnutrition: a pervasive problem, but one that can be fixed',url:source}]}})});
       return {status:response.status,data:await response.json()};
     }, {source:REAL_SOURCE});
     expect(result.status).toBe(200);
