@@ -11,6 +11,23 @@ test('news homepage loads with core UI', async ({ page }) => {
   await expect(page.locator('#myCountryTab')).toBeVisible();
 });
 
+test('language selector exposes expanded most-spoken language coverage', async ({ page }) => {
+  await page.goto('/');
+  const selector = page.locator('#global-news-language-selector');
+  await expect(selector).toBeVisible();
+  const values = await selector.locator('option').evaluateAll(options => options.map(o => o.value));
+  expect(values.length).toBeGreaterThanOrEqual(20);
+  for (const language of ['en', 'zh', 'hi', 'es', 'fr', 'ar', 'bn', 'pt', 'ru', 'ur', 'id', 'de', 'ja', 'mr', 'te', 'tr', 'ta', 'vi', 'ko', 'it']) {
+    expect(values).toContain(language);
+  }
+  await selector.selectOption('hi');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'hi');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+  await selector.selectOption('ur');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ur');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+});
+
 test('country personalization controls work', async ({ page }) => {
   await page.goto('/');
   const country = page.locator('#countrySearch');
