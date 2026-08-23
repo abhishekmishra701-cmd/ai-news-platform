@@ -5,14 +5,13 @@ test.describe('Story Reader content quality', () => {
     await page.goto('/');
     await page.evaluate(() => {
       const story={id:'limited-e2e',headline:'Example story with limited publisher text',summary:'A single source sentence is available from the live feed.',body:'',country:'India',verification_status:'developing',source_count:1,sources:[{publisher:'Example Publisher',title:'Example story with limited publisher text',url:'https://example.com/story'}]};
-      window.__GLOBAL_NEWS_API_STORIES__=[story];
-      window.__GLOBAL_NEWS_STORIES__=[story];
+      window.__GLOBAL_NEWS_API_STORIES__=[story];window.__GLOBAL_NEWS_STORIES__=[story];
       const b=document.createElement('button');b.setAttribute('data-open','limited-e2e');document.body.appendChild(b);b.click();b.remove();
     });
     await expect(page.locator('#detail')).not.toHaveClass(/hidden/);
     await expect(page.locator('#storyReaderBrief')).toContainText('A single source sentence');
-    await expect(page.locator('#storyReaderReport')).toContainText('Limited source content available');
-    await expect(page.locator('#storyReaderReport')).not.toContainText('Coverage is currently filed under');
+    await expect(page.locator('#storyReaderReport')).toContainText('Detailed source report temporarily unavailable');
+    await expect(page.locator('#storyReaderReport')).not.toContainText('A single source sentence is available from the live feed.');
     await expect(page.locator('#storyReaderSources a')).toHaveAttribute('href','https://example.com/story');
   });
 
@@ -24,6 +23,24 @@ test.describe('Story Reader content quality', () => {
       const b=document.createElement('button');b.setAttribute('data-open','full-e2e');document.body.appendChild(b);b.click();b.remove();
     });
     await expect(page.locator('#storyReaderReport')).toContainText('A later update added');
-    await expect(page.locator('#storyReaderReport')).not.toContainText('Limited source content available');
+    await expect(page.locator('#storyReaderReport')).not.toContainText('Detailed source report temporarily unavailable');
+  });
+
+  test('live-feed story sends story payload to grounded-report endpoint', async ({ page }) => {
+    let captured=null;
+    await page.route('**/functions/v1/story-brief-v2', async route => {
+      captured=JSON.parse(route.request().postData() || '{}');
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({report:{label:'Source-grounded report',paragraphs:['The publisher reported a later development involving emergency response teams.','Authorities provided additional verified context and said further updates would follow.'],coverage:'Grounded in source material.'}})});
+    });
+    await page.goto('/');
+    await page.evaluate(() => {
+      const story={id:'live-feed-e2e',headline:'Live feed source story',summary:'A short verified source summary.',body:'',country:'Global',verification_status:'developing',source_count:1,sources:[{publisher:'Example Publisher',title:'Live feed source story',url:'https://example.com/live'}]};
+      window.__GLOBAL_NEWS_API_STORIES__=[story];window.__GLOBAL_NEWS_STORIES__=[story];
+      const b=document.createElement('button');b.setAttribute('data-open','live-feed-e2e');document.body.appendChild(b);b.click();b.remove();
+    });
+    await expect(page.locator('#storyReaderReport')).toContainText('later development involving emergency response teams');
+    expect(captured.story_id).toBe('live-feed-e2e');
+    expect(captured.story.sources[0].url).toBe('https://example.com/live');
+    expect(captured.story.headline).toBe('Live feed source story');
   });
 });
