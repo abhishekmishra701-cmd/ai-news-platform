@@ -65,14 +65,14 @@ test.describe('Story Reader content quality', () => {
     const open=page.locator('[data-open="real-source-e2e"]');
     await expect(open).toBeVisible();
     await open.click();
-    await expect(page.locator('#storyReaderReport')).toContainText('The magnitude of the malnutrition problem is amplified in the Pacific', {timeout:30000});
+    await expect(page.locator('#storyReaderReport')).toContainText('double burden of malnutrition', {timeout:30000});
+    await expect(page.locator('#storyReaderReport')).toContainText('national nutrition policy');
     await expect(page.locator('#storyReaderReport')).not.toContainText('Detailed source report temporarily unavailable');
     await expect(page.locator('#storyReaderReport')).not.toContainText('A live-feed item with a headline and source attribution but no stored article body.');
-    await expect(page.locator('#storyReaderReport')).toContainText('double burden of malnutrition');
     await expect(page.locator('#storyReaderSources a')).toHaveAttribute('href',REAL_SOURCE);
   });
 
-  test('REAL endpoint: supplied source URL produces at least three distinct report paragraphs', async ({ page }) => {
+  test('REAL endpoint: source retrieval returns 4-6 brief points and a distinct full report', async ({ page }) => {
     await page.goto('/');
     const result=await page.evaluate(async ({ source }) => {
       const key='sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl';
@@ -85,8 +85,11 @@ test.describe('Story Reader content quality', () => {
     }, {source:REAL_SOURCE});
     expect(result.status).toBe(200);
     expect(result.data.ok).toBe(true);
+    expect(result.data.brief.points.length).toBeGreaterThanOrEqual(4);
+    expect(result.data.brief.points.length).toBeLessThanOrEqual(6);
     expect(result.data.report.paragraphs.length).toBeGreaterThanOrEqual(3);
     expect(result.data.report.paragraphs.join(' ')).toContain('Pacific');
+    expect(result.data.report.paragraphs.join(' ')).not.toContain(result.data.brief.points[0]);
     expect(result.data.retrieval.status).toBe('success');
   });
 });
