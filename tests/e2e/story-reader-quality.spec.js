@@ -32,7 +32,7 @@ test.describe('Story Reader content quality', () => {
     let captured=null;
     await page.route('**/*story-brief-v2', async route => {
       captured=JSON.parse(route.request().postData() || '{}');
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({report:{label:'Source-grounded report',paragraphs:['The publisher reported a later development involving emergency response teams.','Authorities provided additional verified context and said further updates would follow.'],coverage:'Grounded in source material.'},sources:[{publisher:'Example Publisher',title:'Live feed source story',url:'https://example.com/live'}]})});
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({report:{label:'Source-grounded report',paragraphs:['The publisher reported a later development involving emergency response teams.','Authorities provided additional verified context and said further updates would follow.','The publisher also reported that additional verified information would be released as officials completed their assessment.'],coverage:'Grounded in source material.'},sources:[{publisher:'Example Publisher',title:'Live feed source story',url:'https://example.com/live'}]})});
     });
     await page.goto('/');
     await page.evaluate(() => {
