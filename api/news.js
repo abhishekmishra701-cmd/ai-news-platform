@@ -30,7 +30,7 @@ async function resolvePublisherUrl(url){
       if(finalUrl&&!/news\.google\.com/i.test(finalUrl))return finalUrl;
     }finally{clearTimeout(t)}
   }catch(_){}
-  return original;
+  return /news\.google\.com/i.test(original) ? "" : original;
 }
 async function googleRows(xml,query,requestedCategory){
   const items=xml.match(/<item>[\s\S]*?<\/item>/gi)||[];
@@ -42,9 +42,10 @@ async function googleRows(xml,query,requestedCategory){
     const summary=tidySummary(rawSummary,headline,publisher);
     const rawUrl=xmlTag(b,"link")||xmlAttr(b,"link");
     const url=await resolvePublisherUrl(rawUrl);
+    if(!url)return null;
     return normalize({id:`google:${query}:${i}:${key(url||headline).replace(/[^a-z0-9]+/g,"-").slice(0,120)}`,headline,summary,body:"",published_at:xmlTag(b,"pubDate"),source:"Google News RSS",sources:[{publisher,url,title:headline}],source_count:1},requestedCategory);
   }));
-  return rows.filter(validStory);
+  return rows.filter(Boolean).filter(validStory);
 }
 async function google(req){const requested=typeof req.query?.category==="string"?req.query.category:null;const queries=requested?[topic(requested)]:HOME_TOPICS;const settled=await Promise.allSettled(queries.map(async q=>googleRows(await text(`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-IN&gl=IN&ceid=IN:en`,9000),q,requested)));return settled.flatMap(r=>r.status==="fulfilled"?r.value:[])}
 async function gdeltQuery(q,requestedCategory){const u=new URL(GDELT_URL);u.searchParams.set("query",q);u.searchParams.set("mode","artlist");u.searchParams.set("format","json");u.searchParams.set("maxrecords","250");u.searchParams.set("sort","datedesc");const p=await json(u,{headers:{Accept:"application/json"}},10000);return Array.isArray(p?.articles)?p.articles.map((x,i)=>normalize({id:`gdelt:${q}:${i}:${key(x.url||x.title).replace(/[^a-z0-9]+/g,"-").slice(0,120)}`,headline:x.title,summary:"",body:"",published_at:x.seendate||null,source:"GDELT",sources:x.url?[{publisher:x.domain||"GDELT-indexed source",url:x.url,title:x.title}]:[],source_count:1},requestedCategory)).filter(validStory):[]}
