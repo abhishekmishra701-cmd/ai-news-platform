@@ -6,5 +6,5 @@ function load(src){const s=document.createElement('script');s.src=src;s.async=fa
 load('./phase6a-runtime.js?v=p0-2');
 load('./i18n-final.js?v=p0-2');
 load('./story-reader-retrieval-fallback.js?v=3');
-load('./story-reader-core-v2.js?v=19');
+load('./story-reader-core-v2.js?v=20');
 })();
