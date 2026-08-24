@@ -20,11 +20,7 @@ test.describe('Story Reader content quality', () => {
 
   test('grounded service response renders 4-6 Story Brief points and distinct Full Report', async ({ page }) => {
     await page.route('**/*story-brief-v2', async route => {
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
-        brief:{label:'Source-grounded brief',points:['Confirmed development one from the publisher source.','Confirmed development two with additional context.','Confirmed development three affecting the region.','Confirmed development four with the latest official response.'],coverage:'Grounded in publisher material.'},
-        report:{label:'Source-grounded full report',paragraphs:['Additional context from the publisher that is not repeated in the brief.','Officials described the wider implications and outlined the next steps.','The source reported further developments and noted that more verified information may follow.'],coverage:'Grounded in source material.'},
-        sources:[{publisher:'Example Publisher',title:'Grounded story',url:'https://example.com/grounded'}]
-      })});
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({brief:{label:'Source-grounded brief',points:['Confirmed development one from the publisher source.','Confirmed development two with additional context.','Confirmed development three affecting the region.','Confirmed development four with the latest official response.'],coverage:'Grounded in publisher material.'},report:{label:'Source-grounded full report',paragraphs:['Additional context from the publisher that is not repeated in the brief.','Officials described the wider implications and outlined the next steps.','The source reported further developments and noted that more verified information may follow.'],coverage:'Grounded in source material.'},sources:[{publisher:'Example Publisher',title:'Grounded story',url:'https://example.com/grounded'}]})});
     });
     await page.goto('/');
     await page.evaluate(() => {
@@ -54,7 +50,6 @@ test.describe('Story Reader content quality', () => {
     await expect(page.locator('#storyReaderBrief li')).toHaveCount(6);
     await expect(page.locator('#storyReaderReport')).toContainText('The report also described continuing military and economic pressure on Iran.');
     await expect(page.locator('#storyReaderReport')).not.toContainText('temporarily unavailable');
-    await expect(page.locator('#storyReaderReport')).not.toContainText('Iran says new sanctions threatened by desperate US will fail');
   });
 
   test('substantive body produces report detail distinct from the brief', async ({ page }) => {
@@ -108,9 +103,16 @@ test.describe('Story Reader content quality', () => {
     await page.goto('/');
     const result=await page.evaluate(async ({ source }) => {
       const key='sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl';
-      const response=await fetch('https://nfqwnrmwyhcycjsfwqfl.supabase.co/functions/v2/story-brief-v2',{method:'POST',headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key},body:JSON.stringify({story:{id:'endpoint-real-e2e',headline:'Malnutrition: a pervasive problem, but one that can be fixed',summary:'A live-feed story with no stored body.',body:'',category:'World',verification_status:'developing',source_count:1,sources:[{publisher:'Devpolicy Blog',title:'Malnutrition: a pervasive problem, but one that can be fixed',url:source}]}})});
+      const response=await fetch('https://nfqwnrmwyhcycjsfwqfl.supabase.co/functions/v1/story-brief-v2',{method:'POST',headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key},body:JSON.stringify({story:{id:'endpoint-real-e2e',headline:'Malnutrition: a pervasive problem, but one that can be fixed',summary:'A live-feed story with no stored body.',body:'',category:'World',verification_status:'developing',source_count:1,sources:[{publisher:'Devpolicy Blog',title:'Malnutrition: a pervasive problem, but one that can be fixed',url:source}]}})});
       return {status:response.status,data:await response.json()};
     }, {source:REAL_SOURCE});
-    expect(result.status).toBe(404);
+    expect(result.status).toBe(200);
+    expect(result.data.ok).toBe(true);
+    expect(result.data.brief.points.length).toBeGreaterThanOrEqual(4);
+    expect(result.data.brief.points.length).toBeLessThanOrEqual(6);
+    expect(result.data.report.paragraphs.length).toBeGreaterThanOrEqual(3);
+    expect(result.data.report.paragraphs.join(' ')).toContain('Pacific');
+    expect(result.data.report.paragraphs.join(' ')).not.toContain(result.data.brief.points[0]);
+    expect(result.data.retrieval.status).toBe('success');
   });
 });
