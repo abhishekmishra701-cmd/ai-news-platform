@@ -14,7 +14,18 @@ function tidySummary(value,headline,publisher=""){let s=uniqueTail(value);const 
 function validStory(s){const h=clean(s.headline);if(h.length<12)return false;if(/^(undefined|null|google news|gdelt)$/i.test(h))return false;const tokens=h.toLowerCase().split(/\W+/).filter(Boolean);if(tokens.length>6&&tokens.slice(-3).join(' ')===tokens.slice(-6,-3).join(' '))return false;return true}
 async function text(url,timeout=10000){const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{signal:c.signal,headers:{Accept:"application/xml,text/xml,text/html,application/json","User-Agent":"GlobalNewsPlatform/1.0"}});if(!r.ok)throw Error(`HTTP ${r.status}`);return await r.text()}finally{clearTimeout(t)}}
 async function json(url,opts={},timeout=10000){const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{...opts,signal:c.signal});if(!r.ok)throw Error(`HTTP ${r.status}`);return await r.json()}finally{clearTimeout(t)}}
-function normalize(s,requestedCategory){const srcs=Array.isArray(s.sources)?s.sources.map(x=>({...x,publisher:clean(x.publisher),title:tidyHeadline(x.title,x.publisher),url:clean(x.url||x.link)})):[];const publisher=srcs[0]?.publisher||s.source||"";const headline=tidyHeadline(s.headline,publisher);const summary=tidySummary(s.summary,headline,publisher);const body=clean(s.body);const cleaned={...s,headline,summary,body,sources:srcs};const country=inferCountryFromStory(cleaned),cat=requestedCategory?{category:requestedCategory}:inferCategoryFromStory(cleaned);return {...cleaned,country:country.country||cleaned.country||"Global",category:cat.category||cleaned.category||"World",verification_status:cleaned.verification_status||"developing",source_count:Number(cleaned.source_count||srcs.length||1)}}
+function classifyVerification(s,srcs){
+  const raw=clean(s.verification_status).toLowerCase();
+  const workflow=clean(s.status).toLowerCase();
+  if(/^(confirmed|verified)$/.test(raw)||/^(verified|published|corrected)$/.test(workflow))return "confirmed";
+  if(raw==="corrected")return "corrected";
+  if(raw==="developing"||workflow==="developing")return "developing";
+  // Fresh live-feed items are source-backed but still evolving; do not label every
+  // single-source item as UNVERIFIED merely because a workflow status is absent.
+  if(!raw||raw==="unverified")return srcs.length>0?"developing":"unverified";
+  return raw;
+}
+function normalize(s,requestedCategory){const srcs=Array.isArray(s.sources)?s.sources.map(x=>({...x,publisher:clean(x.publisher),title:tidyHeadline(x.title,x.publisher),url:clean(x.url||x.link)})):[];const publisher=srcs[0]?.publisher||s.source||"";const headline=tidyHeadline(s.headline,publisher);const summary=tidySummary(s.summary,headline,publisher);const body=clean(s.body);const cleaned={...s,headline,summary,body,sources:srcs};const country=inferCountryFromStory(cleaned),cat=requestedCategory?{category:requestedCategory}:inferCategoryFromStory(cleaned);return {...cleaned,country:country.country||cleaned.country||"Global",category:cat.category||cleaned.category||"World",verification_status:classifyVerification(cleaned,srcs),source_count:Number(cleaned.source_count||srcs.length||1)}}
 async function supabase(){const fields="id,slug,headline,summary,body,category,country,status,verification_status,source_count,published_at,created_at,updated_at,news_sources(url,publisher,title,excerpt)";const u=`${SUPABASE_URL}/rest/v1/news_stories?status=in.(verified,published,corrected,developing)&select=${fields}&order=published_at.desc.nullslast,created_at.desc&limit=1000`;const rows=await json(u,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,Accept:"application/json"}},12000);return Array.isArray(rows)?rows.map(x=>normalize({...x,sources:Array.isArray(x.news_sources)?x.news_sources:[]})).filter(validStory):[]}
 function topic(category){return ({India:"India",World:"World",Geopolitics:"geopolitics",'International Relations':"international relations",Business:"business",Technology:"technology",Entertainment:"entertainment",Sports:"sports",Science:"science",Climate:"climate change"}[category]||"world news")}
 function xmlTag(block,name){const m=block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`,'i'));return m?clean(m[1].replace(/^<!\[CDATA\[|\]\]>$/g,"")):""}
@@ -41,9 +52,13 @@ async function googleRows(xml,query,requestedCategory){
     const rawSummary=xmlTag(b,"description");
     const summary=tidySummary(rawSummary,headline,publisher);
     const rawUrl=xmlTag(b,"link")||xmlAttr(b,"link");
-    const url=await resolvePublisherUrl(rawUrl);
+    const resolvedUrl=await resolvePublisherUrl(rawUrl);
+    // Keep the feed broad even when a publisher blocks server-side redirect resolution.
+    // The story reader has its own retrieval/discovery chain and will resolve or discover
+    // the publisher later instead of dropping a valid live story from the feed.
+    const url=resolvedUrl||clean(rawUrl);
     if(!url)return null;
-    return normalize({id:`google:${query}:${i}:${key(url||headline).replace(/[^a-z0-9]+/g,"-").slice(0,120)}`,headline,summary,body:"",published_at:xmlTag(b,"pubDate"),source:"Google News RSS",sources:[{publisher,url,title:headline}],source_count:1},requestedCategory);
+    return normalize({id:`google:${query}:${i}:${key(url||headline).replace(/[^a-z0-9]+/g,"-").slice(0,120)}`,headline,summary,body:"",published_at:xmlTag(b,"pubDate"),source:"Google News RSS",verification_status:"developing",sources:[{publisher,url,title:headline}],source_count:1},requestedCategory);
   }));
   return rows.filter(Boolean).filter(validStory);
 }
