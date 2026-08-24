@@ -12,7 +12,7 @@ test.describe('Story Reader content quality', () => {
     });
     await expect(page.locator('#detail')).not.toHaveClass(/hidden/);
     await expect(page.locator('#storyReaderBrief')).toContainText('A single source sentence');
-    await expect(page.locator('#storyReaderReport')).toContainText('Detailed source report temporarily unavailable');
+    await expect(page.locator('#storyReaderReport')).toContainText('Full Report could not be retrieved');
     await expect(page.locator('#storyReaderReport')).not.toContainText('A single source sentence is available from the live feed.');
     await expect(page.locator('#storyReaderSources a')).toHaveAttribute('href','https://example.com/story');
   });
@@ -25,14 +25,14 @@ test.describe('Story Reader content quality', () => {
       const b=document.createElement('button');b.setAttribute('data-open','full-e2e');document.body.appendChild(b);b.click();b.remove();
     });
     await expect(page.locator('#storyReaderReport')).toContainText('A later update added');
-    await expect(page.locator('#storyReaderReport')).not.toContainText('Detailed source report temporarily unavailable');
+    await expect(page.locator('#storyReaderReport')).not.toContainText('Full Report could not be retrieved');
   });
 
-  test('live-feed architecture sends the complete story payload to the grounded-report endpoint', async ({ page }) => {
+  test('live-feed architecture sends the complete story payload to the isolated source reader endpoint', async ({ page }) => {
     let captured=null;
-    await page.route('**/*story-brief-v2', async route => {
+    await page.route('**/api/story-content', async route => {
       captured=JSON.parse(route.request().postData() || '{}');
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({report:{label:'Source-grounded report',paragraphs:['The publisher reported a later development involving emergency response teams.','Authorities provided additional verified context and said further updates would follow.','The publisher also reported that additional verified information would be released as officials completed their assessment.'],coverage:'Grounded in source material.'},sources:[{publisher:'Example Publisher',title:'Live feed source story',url:'https://example.com/live'}]})});
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,brief:{points:['The publisher confirmed a later development involving emergency response teams.','Authorities provided additional verified context and said further updates would follow.','Officials said the situation remained under active assessment.','The publisher reported that additional verified information would be released after review.']},report:{label:'Source-grounded full report',paragraphs:['The publisher reported a later development involving emergency response teams.','Authorities provided additional verified context and said further updates would follow.','The publisher also reported that additional verified information would be released as officials completed their assessment.']},source:{publisher:'Example Publisher',title:'Live feed source story',url:'https://example.com/live'}})});
     });
     await page.goto('/');
     await page.evaluate(() => {
@@ -42,7 +42,6 @@ test.describe('Story Reader content quality', () => {
     });
     await expect.poll(()=>captured,{timeout:12000}).not.toBeNull();
     await expect(page.locator('#storyReaderReport')).toContainText('later development involving emergency response teams');
-    expect(captured.story_id).toBe('live-feed-e2e');
     expect(captured.story.sources[0].url).toBe('https://example.com/live');
     expect(captured.story.headline).toBe('Live feed source story');
   });
@@ -58,16 +57,15 @@ test.describe('Story Reader content quality', () => {
     await open.click();
     await expect(page.locator('#storyReaderReport')).toContainText('double burden', {timeout:30000});
     await expect(page.locator('#storyReaderReport')).toContainText('national nutrition policy');
-    await expect(page.locator('#storyReaderReport')).not.toContainText('Detailed source report temporarily unavailable');
+    await expect(page.locator('#storyReaderReport')).not.toContainText('Full Report could not be retrieved');
     await expect(page.locator('#storyReaderReport')).not.toContainText('A live-feed item with a headline and source attribution but no stored article body.');
     await expect(page.locator('#storyReaderSources a')).toHaveAttribute('href',REAL_SOURCE);
   });
 
-  test('REAL endpoint: source retrieval returns 4-6 brief points and a distinct full report', async ({ page }) => {
+  test('REAL endpoint: isolated source retrieval returns 4-6 brief points and a distinct full report', async ({ page }) => {
     await page.goto('/');
     const result=await page.evaluate(async ({ source }) => {
-      const key='sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl';
-      const response=await fetch('https://nfqwnrmwyhcycjsfwqfl.supabase.co/functions/v1/story-brief-v2',{method:'POST',headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key},body:JSON.stringify({story:{id:'endpoint-real-e2e',headline:'Malnutrition: a pervasive problem, but one that can be fixed',summary:'A live-feed story with no stored body.',body:'',category:'World',verification_status:'developing',source_count:1,sources:[{publisher:'Devpolicy Blog',title:'Malnutrition: a pervasive problem, but one that can be fixed',url:source}]}})});
+      const response=await fetch('/api/story-content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({story:{id:'endpoint-real-e2e',headline:'Malnutrition: a pervasive problem, but one that can be fixed',summary:'A live-feed story with no stored body.',body:'',category:'World',verification_status:'developing',source_count:1,sources:[{publisher:'Devpolicy Blog',title:'Malnutrition: a pervasive problem, but one that can be fixed',url:source}]}})});
       return {status:response.status,data:await response.json()};
     }, {source:REAL_SOURCE});
     expect(result.status).toBe(200);
@@ -77,6 +75,5 @@ test.describe('Story Reader content quality', () => {
     expect(result.data.report.paragraphs.length).toBeGreaterThanOrEqual(3);
     expect(result.data.report.paragraphs.join(' ')).toContain('Pacific');
     expect(result.data.report.paragraphs.join(' ')).not.toContain(result.data.brief.points[0]);
-    expect(result.data.retrieval.status).toBe('success');
   });
 });
