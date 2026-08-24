@@ -19,14 +19,14 @@ window.fetch=async function(input,init){
     const response=await originalFetch(input,init);
 
     // The Supabase brief service is accepted only when it actually returns
-    // both a complete brief and a distinct full report. Otherwise make the
+    // both a usable brief and a distinct full report. Otherwise make the
     // Story Reader continue to its independent server retrieval path.
     if(url.includes('/functions/v1/story-brief-v2')&&response.ok){
       try{
         const data=await response.clone().json();
         const brief=Array.isArray(data?.brief?.points)?data.brief.points.filter(Boolean):[];
         const report=Array.isArray(data?.report?.paragraphs)?data.report.paragraphs.filter(Boolean):[];
-        if(brief.length<4||report.length<3){
+        if(brief.length<2||report.length<2){
           return new Response(
             JSON.stringify({ok:false,error:'insufficient_grounded_content'}),
             {status:503,headers:{'Content-Type':'application/json'}}
