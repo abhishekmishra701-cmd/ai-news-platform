@@ -14,10 +14,22 @@ async function jina(url,title){try{const r=await fetchText(`https://r.jina.ai/${
 async function direct(url,title){try{const r=await fetchText(url,6500);const pt=pageTitle(r.text,title);if(!relevant(pt,title))return null;const blocks=[...jsonLd(r.text),...paragraphs(r.text)];if(blocks.length>=1)return {blocks:blocks.slice(0,18),resolved:r.url||url,method:'direct-html',title:pt,excerpt:meta(r.text,'description')||meta(r.text,'og:description')||''}}catch{}return null}
 async function googleAlternates(headline){try{const r=await fetchText(`https://news.google.com/rss/search?q=${encodeURIComponent(`"${headline}"`)}&hl=en-IN&gl=IN&ceid=IN:en`,6000);const items=r.text.match(/<item>[\s\S]*?<\/item>/gi)||[];return items.slice(0,8).map(x=>({title:extractXml(x,'title'),url:extractXml(x,'link'),publisher:extractXml(x,'source')})).filter(x=>x.url)}catch{return []}}
 async function gdeltAlternates(headline){try{const r=await fetchText(`https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(headline)}&mode=artlist&format=json&maxrecords=12&sort=datedesc`,6000);const data=JSON.parse(r.text);return Array.isArray(data?.articles)?data.articles.map(x=>({title:clean(x.title),url:clean(x.url),publisher:clean(x.domain||x.source||'Publisher')})).filter(x=>x.url&&x.title):[]}catch{return []}}
-async function retrieve(url,title){const attempts=[];if(url){const [a,b]=await Promise.all([jina(url,title),direct(url,title)]);if(a&&b)return a.blocks.length>=b.blocks.length?a:b;if(a||b)return a||b;attempts.push(url)}
-const discovery=await gdeltAlternates(title);for(const alt of discovery.slice(0,3)){if(attempts.includes(alt.url))continue;const got=await jina(alt.url,alt.title||title);if(got)return {...got,publisher:alt.publisher||'Publisher'}}
-const google=await googleAlternates(title);for(const alt of google.slice(0,3)){if(attempts.includes(alt.url))continue;const got=await jina(alt.url,alt.title||title);if(got)return {...got,publisher:alt.publisher||'Publisher'}}
-return {blocks:[],resolved:url||'',method:'unavailable',title,excerpt:''}}
+async function retrieve(url,title){
+const attempts=[];
+if(url){
+  const [a,b]=await Promise.all([jina(url,title),direct(url,title)]);
+  if(a&&b)return a.blocks.length>=b.blocks.length?a:b;
+  if(a||b)return a||b;
+  attempts.push(url);
+}
+const [discovery,google]=await Promise.all([gdeltAlternates(title),googleAlternates(title)]);
+const candidates=[...discovery,...google].filter(x=>x.url&&!attempts.includes(x.url)).slice(0,6);
+const settled=await Promise.allSettled(candidates.map(alt=>jina(alt.url,alt.title||title).then(got=>got?{...got,publisher:alt.publisher||'Publisher'}:null)));
+for(const item of settled){
+  if(item.status==='fulfilled'&&item.value?.blocks?.length)return item.value;
+}
+return {blocks:[],resolved:url||'',method:'unavailable',title,excerpt:''}
+}
 function unique(arr){return [...new Set(arr.map(clean).filter(Boolean))]}
 function makeBrief(report,summary,headline){const out=[];const h=clean(headline).toLowerCase();for(const p of report){for(const s of sentences(p)){if(s.toLowerCase()===h)continue;if(!out.some(x=>x.toLowerCase()===s.toLowerCase()))out.push(s);if(out.length>=6)break}if(out.length>=6)break}for(const s of sentences(summary)){if(s.toLowerCase()===h)continue;if(!out.some(x=>x.toLowerCase()===s.toLowerCase()))out.push(s);if(out.length>=6)break}return out.slice(0,6)}
 function reportWithoutBrief(report,points){const used=new Set(points.map(x=>clean(x).toLowerCase()));const out=[];for(const p of report){const remaining=sentences(p).filter(s=>!used.has(clean(s).toLowerCase())).join(' ');if(remaining.length>=70)out.push(remaining);else if(clean(p).length>=120&&!out.some(x=>x.toLowerCase()===clean(p).toLowerCase()))out.push(clean(p));if(out.length>=12)break}return out}
