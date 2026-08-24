@@ -10,25 +10,49 @@ function jsonLd(html){const out=[];for(const m of html.matchAll(/<script[^>]+typ
 function meta(html,name){const n=name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const a=new RegExp(`<meta[^>]+(?:name|property)=[\\"']${n}[\\"'][^>]+content=[\\"']([^\\"']+)[\\"'][^>]*>`,'i').exec(html);const b=new RegExp(`<meta[^>]+content=[\\"']([^\\"']+)[\\"'][^>]+(?:name|property)=[\\"']${n}[\\"'][^>]*>`,'i').exec(html);return clean(a?.[1]||b?.[1]||'')}
 function pageTitle(html,fallback){return clean(meta(html,'og:title')||meta(html,'twitter:title')||/<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1]||/<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1]||fallback)}
 function markdownBlocks(text){return String(text||'').split(/\n\s*\n+/).map(x=>x.replace(/^#{1,6}\s*/g,'').replace(/^[*-+]\s+/g,'').replace(/\[[^\]]+\]\([^)]*\)/g,'').replace(/\s+/g,' ').trim()).filter(x=>x.length>=70&&!/cookie|subscribe|newsletter|privacy policy|terms of use|all rights reserved|sign up/i.test(x))}
+async function resolvePublisherUrl(url){
+  const original=clean(url);
+  if(!original)return "";
+  if(!/news\.google\.com/i.test(original))return original;
+  try{
+    const r=await fetchText(original,7500);
+    const finalUrl=clean(r.url||original);
+    if(finalUrl&&!/news\.google\.com/i.test(finalUrl))return finalUrl;
+    const canonical=/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i.exec(r.text)||/<meta[^>]+property=["']og:url["'][^>]+content=["']([^"']+)["']/i.exec(r.text);
+    const candidate=clean(canonical?.[1]||"");
+    if(candidate&&/^https?:\/\//i.test(candidate)&&!/news\.google\.com/i.test(candidate))return candidate;
+  }catch{}
+  return original;
+}
 async function jina(url,title){try{const r=await fetchText(`https://r.jina.ai/${url}`,8000);const text=r.text||'';const cleanTitle=pageTitle(text,title);const blocks=markdownBlocks(text);const body=blocks.filter(x=>x.length>=70);if(body.length>=1)return {blocks:body.slice(0,18),resolved:url,method:'jina-reader',title:cleanTitle,excerpt:body[0]||''}}catch{}return null}
 async function direct(url,title){try{const r=await fetchText(url,6500);const pt=pageTitle(r.text,title);if(!relevant(pt,title))return null;const blocks=[...jsonLd(r.text),...paragraphs(r.text)];if(blocks.length>=1)return {blocks:blocks.slice(0,18),resolved:r.url||url,method:'direct-html',title:pt,excerpt:meta(r.text,'description')||meta(r.text,'og:description')||''}}catch{}return null}
-async function googleAlternates(headline){try{const r=await fetchText(`https://news.google.com/rss/search?q=${encodeURIComponent(`"${headline}"`)}&hl=en-IN&gl=IN&ceid=IN:en`,6000);const items=r.text.match(/<item>[\s\S]*?<\/item>/gi)||[];return items.slice(0,8).map(x=>({title:extractXml(x,'title'),url:extractXml(x,'link'),publisher:extractXml(x,'source')})).filter(x=>x.url)}catch{return []}}
+async function googleAlternates(headline){
+  try{
+    const r=await fetchText(`https://news.google.com/rss/search?q=${encodeURIComponent(`"${headline}"`)}&hl=en-IN&gl=IN&ceid=IN:en`,6000);
+    const items=r.text.match(/<item>[\s\S]*?<\/item>/gi)||[];
+    const rows=items.slice(0,8).map(x=>({title:extractXml(x,'title'),url:extractXml(x,'link'),publisher:extractXml(x,'source')})).filter(x=>x.url);
+    return (await Promise.all(rows.map(async x=>({...x,url:await resolvePublisherUrl(x.url)})))).filter(x=>x.url);
+  }catch{return []}
+}
 async function gdeltAlternates(headline){try{const r=await fetchText(`https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(headline)}&mode=artlist&format=json&maxrecords=12&sort=datedesc`,6000);const data=JSON.parse(r.text);return Array.isArray(data?.articles)?data.articles.map(x=>({title:clean(x.title),url:clean(x.url),publisher:clean(x.domain||x.source||'Publisher')})).filter(x=>x.url&&x.title):[]}catch{return []}}
 async function retrieve(url,title){
 const attempts=[];
-if(url){
-  const [a,b]=await Promise.all([jina(url,title),direct(url,title)]);
+const primaryUrl=await resolvePublisherUrl(url);
+if(primaryUrl){
+  const [a,b]=await Promise.all([jina(primaryUrl,title),direct(primaryUrl,title)]);
   if(a&&b)return a.blocks.length>=b.blocks.length?a:b;
   if(a||b)return a||b;
-  attempts.push(url);
+  attempts.push(primaryUrl);
 }
 const [discovery,google]=await Promise.all([gdeltAlternates(title),googleAlternates(title)]);
-const candidates=[...discovery,...google].filter(x=>x.url&&!attempts.includes(x.url)).slice(0,6);
-const settled=await Promise.allSettled(candidates.map(alt=>jina(alt.url,alt.title||title).then(got=>got?{...got,publisher:alt.publisher||'Publisher'}:null)));
+const rawCandidates=[...discovery,...google].filter(x=>x.url);
+const resolvedCandidates=await Promise.all(rawCandidates.map(async x=>({...x,url:await resolvePublisherUrl(x.url)})));
+const candidates=resolvedCandidates.filter(x=>x.url&&!attempts.includes(x.url)&&!/news\.google\.com/i.test(x.url)).slice(0,8);
+const settled=await Promise.allSettled(candidates.map(alt=>Promise.all([jina(alt.url,alt.title||title),direct(alt.url,alt.title||title)]).then(([a,b])=>{const got=a&&b?(a.blocks.length>=b.blocks.length?a:b):(a||b);return got?{...got,publisher:alt.publisher||'Publisher'}:null})));
 for(const item of settled){
   if(item.status==='fulfilled'&&item.value?.blocks?.length)return item.value;
 }
-return {blocks:[],resolved:url||'',method:'unavailable',title,excerpt:''}
+return {blocks:[],resolved:primaryUrl||url||'',method:'unavailable',title,excerpt:''}
 }
 function unique(arr){return [...new Set(arr.map(clean).filter(Boolean))]}
 function makeBrief(report,summary,headline){const out=[];const h=clean(headline).toLowerCase();for(const p of report){for(const s of sentences(p)){if(s.toLowerCase()===h)continue;if(!out.some(x=>x.toLowerCase()===s.toLowerCase()))out.push(s);if(out.length>=6)break}if(out.length>=6)break}for(const s of sentences(summary)){if(s.toLowerCase()===h)continue;if(!out.some(x=>x.toLowerCase()===s.toLowerCase()))out.push(s);if(out.length>=6)break}return out.slice(0,6)}
