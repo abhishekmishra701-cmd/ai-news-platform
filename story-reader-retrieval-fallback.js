@@ -1,0 +1,1 @@
+(()=>{const originalFetch=window.fetch.bind(window);window.fetch=async function(input,init){try{const url=typeof input==='string'?input:input?.url||'';if(url.endsWith('/api/story-content')&&init?.method==='POST'){return originalFetch('/api/story-content-fallback',init)}}catch{}return originalFetch(input,init)}})();
