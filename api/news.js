@@ -4,7 +4,8 @@ import { inferCategoryFromStory } from "../lib/category-inference.js";
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://nfqwnrmwyhcycjsfwqfl.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_ANON_KEY||"sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl";
 const GDELT_URL="https://api.gdeltproject.org/api/v2/doc/doc";
-const HOME_TOPICS=["world news","India news","international news","geopolitics","business news","technology news","science news","climate change","sports news","entertainment news"];\nconst GDELT_HOME_TOPICS=["world news","international news","breaking news","geopolitics","global economy","technology","climate change","public health","science","energy transition"];
+const HOME_TOPICS=["world news","India news","international news","geopolitics","business news","technology news","science news","climate change","sports news","entertainment news"];
+const GDELT_HOME_TOPICS=["world news","international news","breaking news","geopolitics","global economy","technology","climate change","public health","science","energy transition"];
 function decodeEntities(value){return String(value||"").replace(/&#x([0-9a-f]+);?/gi,(_,hex)=>String.fromCodePoint(parseInt(hex,16))).replace(/&#([0-9]+);?/g,(_,num)=>String.fromCodePoint(parseInt(num,10))).replace(/&(amp|quot|apos|nbsp|#39|lt|gt);/gi,(_,name)=>({amp:"&",quot:'"',apos:"'",nbsp:" ","#39":"'",lt:"<",gt:">"}[name.toLowerCase()]||_));}
 function clean(value){let out=String(value||"");for(let i=0;i<2;i++)out=decodeEntities(out).replace(/<[^>]*>/g," ");return decodeEntities(out).replace(/\s+/g," ").trim();}
 const key=v=>clean(v).toLowerCase();
