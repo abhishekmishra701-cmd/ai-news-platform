@@ -15,4 +15,6 @@ load('./ui-quality-fixes-v1.js?v=3');
 load('./global-news-ui-fix-v2.js?v=4');
 load('./phase6a-story-quality-v1.js?v=3');
 load('./story-reader-click-recovery-v1.js?v=1');
+load('./story-reader-interactions-v1.js?v=1');
+load('./home-experience-v1.js?v=1');
 })();
