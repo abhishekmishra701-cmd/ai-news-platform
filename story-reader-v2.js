@@ -9,4 +9,5 @@ load('./story-reader-retrieval-fallback.js?v=3');
 load('./story-reader-core-v2.js?v=23');
 load('./ui-shell-v2.js?v=1');
 load('./story-report-recovery-v2.js?v=1');
+load('./global-news-brand-override.js?v=1');
 })();
