@@ -7,6 +7,13 @@ test.describe('Global News UI quality', () => {
     await expect(page.locator('.brand')).not.toContainText('AI NEWS');
   });
 
+  test('homepage has exactly one global language selector and keeps the API state separate', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#global-news-language-selector')).toHaveCount(1);
+    await expect(page.locator('.state')).toContainText('API connected');
+    await expect(page.locator('.state')).not.toContainText('English');
+  });
+
   test('story reader shows ten most-spoken languages with correct numbering', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => {
