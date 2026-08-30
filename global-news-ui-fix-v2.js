@@ -1,0 +1,1 @@
+(()=>{'use strict';if(window.__GLOBAL_NEWS_UI_FIX_V2__)return;window.__GLOBAL_NEWS_UI_FIX_V2__=true;const s=document.createElement('style');s.id='global-news-ui-fix-v2';s.textContent='.state:after{content:none!important;display:none!important}.ai-trust strong{font-size:inherit!important}.ai-trust strong:after{content:none!important}';document.head.appendChild(s);})();
