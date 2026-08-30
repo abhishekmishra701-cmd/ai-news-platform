@@ -6,11 +6,11 @@ function load(src){const s=document.createElement('script');s.src=src;s.async=fa
 load('./phase6a-runtime.js?v=p0-5');
 load('./i18n-final.js?v=p0-4');
 load('./story-reader-retrieval-fallback.js?v=5');
-load('./story-reader-core-v2.js?v=26');
+load('./story-reader-core-v2.js?v=27');
 load('./ui-shell-v2.js?v=4');
-load('./story-report-recovery-v2.js?v=6');
+load('./story-report-recovery-v2.js?v=7');
 load('./global-news-brand-override.js?v=3');
 load('./ui-quality-fixes-v1.js?v=3');
 load('./global-news-ui-fix-v2.js?v=4');
-load('./phase6a-story-quality-v1.js?v=2');
+load('./phase6a-story-quality-v1.js?v=3');
 })();
