@@ -3,6 +3,7 @@
 if(window.__GLOBAL_NEWS_STORY_READER_LOADER__) return;
 window.__GLOBAL_NEWS_STORY_READER_LOADER__=true;
 function load(src){const s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}
+load('./story-navigation-v4.js?v=1');
 load('./phase6a-runtime.js?v=p0-9');
 load('./i18n-final.js?v=p0-8');
 load('./phase6a-story-content-guard-v2.js?v=6');
