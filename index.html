@@ -21,7 +21,7 @@ var flagMap={'India':'🇮🇳','China':'🇨🇳','Japan':'🇯🇵','South Kor
 var countryCodes={'India':'IN','China':'CN','Japan':'JP','South Korea':'KR','Indonesia':'ID','Singapore':'SG','Thailand':'TH','Vietnam':'VN','Malaysia':'MY','Philippines':'PH','Pakistan':'PK','Bangladesh':'BD','Sri Lanka':'LK','Nepal':'NP','France':'FR','Germany':'DE','Greece':'GR','Italy':'IT','Spain':'ES','Portugal':'PT','Netherlands':'NL','United Kingdom':'GB','Austria':'AT','Belgium':'BE','Switzerland':'CH','United States':'US','Canada':'CA','Mexico':'MX','Brazil':'BR','Argentina':'AR','Australia':'AU','New Zealand':'NZ','Saudi Arabia':'SA','United Arab Emirates':'AE','Israel':'IL','Iran':'IR','Iraq':'IQ','Qatar':'QA','Kuwait':'KW','Oman':'OM','Jordan':'JO','Egypt':'EG','Türkiye':'TR','South Africa':'ZA','Nigeria':'NG','Kenya':'KE','Ethiopia':'ET','Ghana':'GH','Morocco':'MA','Algeria':'DZ','Tunisia':'TN'};
 var $=function(s){return document.querySelector(s)},nav=$('#nav'),grid=$('#grid'),hero=$('#hero'),notice=$('#notice'),q=$('#q'),state=$('#state'),listTitle=$('#listTitle'),storyCount=$('#storyCount'),home=$('#home'),detail=$('#detail'),article=$('#article'),regionsEl=$('#regions'),countrySearch=$('#countrySearch'),countryMenu=$('#countryMenu'),explorerHint=$('#explorerHint');
 function decode(v){var ta=document.createElement('textarea');ta.innerHTML=String(v==null?'':v);return ta.value}
-function esc(v){return String(decode(v)).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]})}
+function esc(v){return String(decode(v)).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;' }[c]})}
 function flag(c){return flagMap[c]||'🌐'}
 function countryList(){return region==='All'?Object.keys(flagMap).sort():regions[region]||[]}
 function renderRegions(){regionsEl.innerHTML=Object.keys(regions).map(function(r){return '<button data-region="'+esc(r)+'" class="'+(r===region?'active':'')+'">'+esc(r)+'</button>'}).join('')}
@@ -42,5 +42,5 @@ document.addEventListener('click',function(e){if(!e.target.closest('.country-con
 $('#search').onclick=function(){mode='home';render()};q.addEventListener('keydown',function(e){if(e.key==='Enter'){mode='home';render()}});
 renderRegions();renderCountryMenu();render();load();
 })();
-</script><script src="./story-reader-v2.js?v=18"></script>
+</script><script src="./story-click-absolute-v5.js?v=1"></script><script src="./story-reader-v2.js?v=19"></script>
 </body></html>
