@@ -1,0 +1,13 @@
+(()=>{'use strict';
+if(window.__GN_DIRECT_STORY_CLICK_V4__)return;
+window.__GN_DIRECT_STORY_CLICK_V4__=true;
+const getStories=()=>[window.__GLOBAL_NEWS_API_STORIES__,window.__GLOBAL_NEWS_STORIES__,window.stories].find(Array.isArray)||[];
+const getStory=id=>{const m=window.__GLOBAL_NEWS_STORY_MAP__;if(m&&typeof m.get==='function'){const s=m.get(String(id));if(s)return s}return getStories().find(s=>String(s?.id)===String(id)||String(s?.story_id)===String(id))};
+const ensureCore=()=>{if(typeof window.__GLOBAL_NEWS_OPEN_STORY__==='function')return true;if(!document.querySelector('script[data-gn-direct-core]')){const s=document.createElement('script');s.src='./story-reader-core-v2.js?v=36';s.async=false;s.dataset.gnDirectCore='1';document.head.appendChild(s)}return false};
+const open=id=>{let tries=0;const timer=setInterval(()=>{const story=getStory(id);if(story&&ensureCore()&&typeof window.__GLOBAL_NEWS_OPEN_STORY__==='function'){clearInterval(timer);try{window.__GLOBAL_NEWS_OPEN_STORY__(String(id));}catch(e){console.error('direct story open failed',e)}return}if(++tries>300){clearInterval(timer);console.error('direct story open timeout',id)}},50)};
+const click=e=>{const el=e.target&&e.target.closest?e.target.closest('[data-open]'):null;if(!el)return;const id=el.getAttribute('data-open');if(!id)return;e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();open(id)};
+document.addEventListener('click',click,true);
+document.addEventListener('pointerup',e=>{const el=e.target&&e.target.closest?e.target.closest('[data-open]'):null;if(el){el.style.pointerEvents='auto';el.style.cursor='pointer'}},true);
+const consume=()=>{const id=new URL(location.href).searchParams.get('story');if(id)open(id)};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',consume,{once:true});else consume();
+})();
