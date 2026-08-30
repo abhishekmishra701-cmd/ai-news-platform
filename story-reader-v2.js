@@ -17,4 +17,5 @@ load('./phase6a-story-quality-v1.js?v=7');
 load('./home-experience-v1.js?v=5');
 load('./phase6a-e2e-stability-v1.js?v=4');
 load('./story-click-fix-v2.js?v=2');
+load('./story-navigation-v3.js?v=1');
 })();
