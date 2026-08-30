@@ -4,7 +4,8 @@ import { inferCategoryFromStory } from "../lib/category-inference.js";
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://nfqwnrmwyhcycjsfwqfl.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_ANON_KEY||"sb_publishable_FXSeGzRWwQ3FbyBWf_z80g_DHlcLcCl";
 const GDELT_URL="https://api.gdeltproject.org/api/v2/doc/doc";
-const HOME_TOPICS=["world news","India news","international news","geopolitics","business news","technology news","science news","climate change","sports news","entertainment news"];\nconst GDELT_HOME_TOPICS=["world news","international news","breaking news","geopolitics","global economy","technology","climate change","public health","science","energy transition"];
+const HOME_TOPICS=["world news","India news","international news","geopolitics","business news","technology news","science news","climate change","sports news","entertainment news"];
+const GDELT_HOME_TOPICS=["world news","international news","breaking news","geopolitics","global economy","technology","climate change","public health","science","energy transition"];
 function decodeEntities(value){return String(value||"").replace(/&#x([0-9a-f]+);?/gi,(_,hex)=>String.fromCodePoint(parseInt(hex,16))).replace(/&#([0-9]+);?/g,(_,num)=>String.fromCodePoint(parseInt(num,10))).replace(/&(amp|quot|apos|nbsp|#39|lt|gt);/gi,(_,name)=>({amp:"&",quot:'"',apos:"'",nbsp:" ","#39":"'",lt:"<",gt:">"}[name.toLowerCase()]||_));}
 function clean(value){let out=String(value||"");for(let i=0;i<2;i++)out=decodeEntities(out).replace(/<[^>]*>/g," ");return decodeEntities(out).replace(/\s+/g," ").trim();}
 const key=v=>clean(v).toLowerCase();
@@ -52,11 +53,11 @@ async function googleRows(xml,query,requestedCategory){
     const rawSummary=xmlTag(b,"description");
     const summary=tidySummary(rawSummary,headline,publisher);
     const rawUrl=xmlTag(b,"link")||xmlAttr(b,"link");
-    const resolvedUrl=await resolvePublisherUrl(rawUrl);
-    // Keep the feed broad even when a publisher blocks server-side redirect resolution.
-    // The story reader has its own retrieval/discovery chain and will resolve or discover
-    // the publisher later instead of dropping a valid live story from the feed.
-    const url=resolvedUrl||clean(rawUrl);
+    // Do not resolve publisher redirects while building the live feed. Redirect
+    // resolution can stall the serverless response and silently drop whole source
+    // batches. Preserve the RSS link here; the existing story reader resolves it
+    // only when that individual story is opened.
+    const url=clean(rawUrl);
     if(!url)return null;
     return normalize({id:`google:${query}:${i}:${key(url||headline).replace(/[^a-z0-9]+/g,"-").slice(0,120)}`,headline,summary,body:"",published_at:xmlTag(b,"pubDate"),source:"Google News RSS",verification_status:"",sources:[{publisher,url,title:headline}],source_count:1},requestedCategory);
   }));
