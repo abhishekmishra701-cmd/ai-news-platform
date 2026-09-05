@@ -4,8 +4,7 @@ if(window.__GLOBAL_NEWS_STORY_READER_LOADER__)return;
 window.__GLOBAL_NEWS_STORY_READER_LOADER__=true;
 function load(src){const s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}
 load('./phase6a-runtime.js?v=p1-3');
-load('./i18n-final.js?v=p9-1');
-load('./ui-i18n-core-v1.js?v=1');
-load('./story-reader-core-v3.js?v=4');
-load('./ui-shell-v2.js?v=13');
+load('./i18n-final.js?v=p9-2');
+load('./story-reader-core-v3.js?v=5');
+load('./ui-shell-v2.js?v=14');
 })();
