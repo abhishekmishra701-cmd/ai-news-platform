@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       e2e_base_url:
-        description: 'Optional deployed URL to test; leave empty to test this exact commit locally'
+        description: 'Optional deployed URL to test; leave empty to test the canonical production deployment'
         required: false
         type: string
 
@@ -33,14 +33,26 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Resolve E2E target
         id: target
+        env:
+          INPUT_URL: ${{ inputs.e2e_base_url }}
         run: |
-          if [ -n "${{ inputs.e2e_base_url }}" ]; then
-            echo "base_url=${{ inputs.e2e_base_url }}" >> "$GITHUB_OUTPUT"
-            echo "target=deployed URL" >> "$GITHUB_OUTPUT"
+          if [ -n "$INPUT_URL" ]; then
+            echo "base_url=$INPUT_URL" >> "$GITHUB_OUTPUT"
+            echo "target=deployed URL supplied by workflow input" >> "$GITHUB_OUTPUT"
           else
-            echo "base_url=" >> "$GITHUB_OUTPUT"
-            echo "target=exact checked-out commit via Playwright webServer" >> "$GITHUB_OUTPUT"
+            echo "base_url=https://ai-news-platform-cyan.vercel.app/?utm_source=chatgpt.com" >> "$GITHUB_OUTPUT"
+            echo "target=canonical production deployment" >> "$GITHUB_OUTPUT"
           fi
+      - name: Wait for canonical deployment
+        if: ${{ inputs.e2e_base_url == '' }}
+        run: |
+          for i in {1..30}; do
+            code=$(curl -L -s -o /dev/null -w '%{http_code}' 'https://ai-news-platform-cyan.vercel.app/?utm_source=chatgpt.com' || true)
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 10
+          done
+          echo "Canonical deployment did not become ready in time"
+          exit 1
       - name: Run Desktop E2E
         env:
           E2E_BASE_URL: ${{ steps.target.outputs.base_url }}
