@@ -40,4 +40,17 @@ test.describe('Global News UI quality', () => {
     await select.selectOption({label:'Hindi'});
     await expect.poll(()=>page.evaluate(()=>localStorage.getItem('globalNewsLanguage'))).toBe('hi');
   });
+
+  test('homepage translates dynamic content after Hindi selection', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.hero h1')).toBeVisible({timeout:20000});
+    await expect(page.locator('.card h3').first()).toBeVisible({timeout:20000});
+    const heroEnglish=await page.locator('.hero h1').innerText();
+    const cardEnglish=await page.locator('.card h3').first().innerText();
+    await page.locator('#global-news-language-selector').selectOption('hi');
+    await expect.poll(()=>page.locator('.hero h1').innerText(),{timeout:20000}).not.toBe(heroEnglish);
+    await expect.poll(()=>page.locator('.card h3').first().innerText(),{timeout:20000}).not.toBe(cardEnglish);
+    await expect(page.locator('#listTitle')).toContainText('शीर्ष');
+    await expect(page.locator('.country-picker label')).toHaveText('देश');
+  });
 });
