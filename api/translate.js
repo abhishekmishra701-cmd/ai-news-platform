@@ -9,7 +9,7 @@ function chunkText(input,max=420){
   if(current)chunks.push(current);return chunks;
 }
 
-async function fetchJson(url,ms=3500){
+async function fetchJson(url,ms=2500){
   const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);
   try{
     const r=await fetch(url,{headers:{accept:'application/json','user-agent':'GlobalNews/1.0'},signal:c.signal});
@@ -20,23 +20,17 @@ async function fetchJson(url,ms=3500){
 
 async function googleTranslate(input,target){
   const params='client=gtx&sl=en&tl='+encodeURIComponent(target)+'&dt=t&q='+encodeURIComponent(input);
-  const hosts=['https://translate.googleapis.com/translate_a/single','https://translate.google.com/translate_a/single'];
-  let last;
-  for(const host of hosts){
-    try{
-      const j=await fetchJson(host+'?'+params,3500);
-      const out=clean((j?.[0]||[]).map(x=>x?.[0]||'').join(''));
-      if(out)return out;
-    }catch(e){last=e}
-  }
-  throw last||new Error('google_empty');
+  const j=await fetchJson('https://translate.googleapis.com/translate_a/single?'+params,2500);
+  const out=clean((j?.[0]||[]).map(x=>x?.[0]||'').join(''));
+  if(!out)throw new Error('google_empty');
+  return out;
 }
 
 async function memoryTranslate(input,target){
   const chunks=chunkText(input);const out=[];
   for(const chunk of chunks){
     const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(chunk)+'&langpair=en|'+encodeURIComponent(target);
-    const j=await fetchJson(url,3500);
+    const j=await fetchJson(url,2500);
     const translated=clean(j?.responseData?.translatedText);
     if(!translated)throw new Error('memory_empty');out.push(translated);
   }
@@ -51,14 +45,11 @@ export default async function handler(req,res){
     const {text,to}=req.body||{};const input=clean(text),target=clean(to).toLowerCase();
     if(!input||!target||target==='en'){res.status(200).json({text:input,provider:'identity'});return}
     if(input.length>12000){res.status(413).json({error:'text_too_long'});return}
-    let out='';let provider='';
-    try{out=await googleTranslate(input,target);provider='google'}catch(googleError){
-      try{out=await memoryTranslate(input,target);provider='mymemory'}catch(memoryError){
-        console.warn('Translation providers unavailable',{google:String(googleError),memory:String(memoryError),target});
-        throw memoryError;
-      }
-    }
-    if(!out)throw new Error('empty_translation');
-    res.status(200).json({text:out,provider});
+    const results=await Promise.any([
+      googleTranslate(input,target).then(text=>({text,provider:'google'})),
+      memoryTranslate(input,target).then(text=>({text,provider:'mymemory'}))
+    ]).catch(error=>{console.warn('Translation providers unavailable',{target,error:String(error)});throw error});
+    if(!results?.text)throw new Error('empty_translation');
+    res.status(200).json(results);
   }catch(_){res.status(502).json({error:'translation_unavailable'});}
 }
