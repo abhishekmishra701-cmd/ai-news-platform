@@ -29,16 +29,30 @@ test.describe('Story quality and language synchronization', () => {
     expect(ids).not.toContain(currentId);
   });
 
-  test('Story language selector stays synchronized with the global selector', async ({ page }) => {
+  test('Story language selector stays synchronized with the global selector and translates story text', async ({ page }) => {
     await openFirstStory(page);
     const global = page.locator('#global-news-language-selector');
     const local = page.locator('#aiStoryLanguage');
     await expect(global).toHaveCount(1);
     await expect(local).toHaveCount(1);
     await expect(local).toHaveValue('English');
+    const originalTitle = await page.locator('.story-reader-head h1').innerText();
     await global.selectOption('hi');
     await expect(local).toHaveValue('Hindi');
+    await expect.poll(async () => page.locator('.story-reader-head h1').innerText(), {timeout:15000}).not.toBe(originalTitle);
     await local.selectOption('English');
     await expect(global).toHaveValue('en');
+    await expect.poll(async () => page.locator('.story-reader-head h1').innerText(), {timeout:10000}).toBe(originalTitle);
+  });
+
+  test('Tom Brady Google News story can retrieve a source-grounded report when present', async ({ page }) => {
+    await page.goto('/');
+    const target = page.getByText(/How long will Tom Brady stay at Fox: His 10-year answer comes amid Raiders ownership questions/i).first();
+    test.skip(await target.count() === 0, 'Tom Brady regression story is not in the current live feed');
+    await target.click();
+    await expect(page.locator('.story-reader-card')).toBeVisible();
+    await expect.poll(async () => page.locator('#storyReaderBrief').innerText(), {timeout:20000}).not.toContain('Story Brief is limited for this source');
+    await expect.poll(async () => page.locator('#storyReaderReport').innerText(), {timeout:20000}).not.toContain('Detailed source report is currently unavailable');
+    await expect(page.locator('#storyReaderSources')).toContainText(/Times of India|Source/i);
   });
 });
