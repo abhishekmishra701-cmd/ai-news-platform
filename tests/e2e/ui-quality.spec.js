@@ -14,7 +14,7 @@ test.describe('Global News UI quality', () => {
     await expect(page.locator('.state')).not.toContainText('English');
   });
 
-  test('story reader shows ten most-spoken languages with correct numbering', async ({ page }) => {
+  test('story reader shows all 21 most-spoken languages with correct numbering', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => {
       const story={id:'ui-quality-story',headline:'Global News UI quality story',summary:'A source summary with enough context for the story reader.',body:'Officials provided additional context about the development. Authorities said the response would continue while verified information was gathered from responsible agencies. The publisher reported that further updates would be issued as facts were confirmed.',country:'Global',category:'World',verification_status:'verified',source_count:1,sources:[{publisher:'Example Publisher',title:'Global News UI quality story',url:'https://example.com/story'}]};
@@ -23,9 +23,9 @@ test.describe('Global News UI quality', () => {
     });
     await expect(page.locator('.ai-side-card h3').filter({hasText:'Most Spoken Languages'})).toBeVisible();
     const rows=page.locator('.ai-langs > div');
-    await expect(rows).toHaveCount(10);
+    await expect(rows).toHaveCount(21);
     await expect(rows.nth(0)).toContainText('1.');
-    await expect(rows.nth(9)).toContainText('10.');
+    await expect(rows.nth(20)).toContainText('21.');
   });
 
   test('translation selector changes the active site language', async ({ page }) => {
