@@ -35,14 +35,17 @@ test.describe('Story quality and language synchronization', () => {
     const local = page.locator('#aiStoryLanguage');
     await expect(global).toHaveCount(1);
     await expect(local).toHaveCount(1);
-    await expect(local).toHaveValue('English');
+    await expect(local).toHaveValue('en');
     const originalTitle = await page.locator('.story-reader-head h1').innerText();
     await global.selectOption('hi');
-    await expect(local).toHaveValue('Hindi');
-    await expect.poll(async () => page.locator('.story-reader-head h1').innerText(), {timeout:15000}).not.toBe(originalTitle);
-    await local.selectOption('English');
+    await expect(local).toHaveValue('hi');
+    await expect.poll(async () => page.locator('.story-reader-head h1').innerText(), {timeout:20000}).not.toBe(originalTitle);
+    const hindiTitle = await page.locator('.story-reader-head h1').innerText();
+    await expect.poll(async () => page.locator('#storyReaderBrief').innerText(), {timeout:20000}).not.toMatch(/[A-Za-z]{20,}/);
+    await local.selectOption('en');
     await expect(global).toHaveValue('en');
     await expect.poll(async () => page.locator('.story-reader-head h1').innerText(), {timeout:10000}).toBe(originalTitle);
+    expect(hindiTitle).not.toBe(originalTitle);
   });
 
   test('Tom Brady Google News story can retrieve a source-grounded report when present', async ({ page }) => {
