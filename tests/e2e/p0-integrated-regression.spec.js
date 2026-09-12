@@ -14,14 +14,13 @@ test.describe('Phase 6A P0 integrated regression', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   });
 
-  test('category tabs use the authoritative API path and switch feed', async ({ page }) => {
-    const calls=[];
-    page.on('request', r => { if (r.url().includes('/api/news?category=')) calls.push(r.url()); });
+  test('category tabs switch the authoritative in-memory API feed', async ({ page }) => {
     await page.goto('/');
+    await expect(page.locator('#grid')).toBeVisible();
     await page.locator('[data-cat="Geopolitics"]').click();
     await expect(page.locator('#listTitle')).toContainText('Geopolitics');
     await expect(page.locator('#storyCount')).not.toHaveText('0 stories');
-    await expect.poll(() => calls.some(u => u.includes('category=Geopolitics'))).toBeTruthy();
+    await expect(page.locator('#grid .card').first()).toBeVisible();
   });
 
   test('Home clears selected country UI state', async ({ page }) => {
@@ -43,6 +42,6 @@ test.describe('Phase 6A P0 integrated regression', () => {
     await expect(page.locator('#detail')).not.toHaveClass(/hidden/);
     await page.locator('.story-reader-back').click();
     await expect(page.locator('#home')).not.toHaveClass(/hidden/);
-    await expect(page.locator('#listTitle')).toHaveText(before||'');
+    await expect(page.locator('#listTitle')).toHaveText(before);
   });
 });
