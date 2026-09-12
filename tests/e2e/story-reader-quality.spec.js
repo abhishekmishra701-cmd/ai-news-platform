@@ -21,7 +21,7 @@ test.describe('Story Reader content quality', () => {
       const b=document.createElement('button');b.setAttribute('data-open','limited-e2e');document.body.appendChild(b);b.click();b.remove();
     });
     await expect(page.locator('#detail')).not.toHaveClass(/hidden/);
-    await expect(page.locator('#storyReaderBrief')).toContainText('A single source sentence');
+    await expect(page.locator('#storyReaderBrief')).toContainText('Story Brief is limited for this source');
     await expect(page.locator('#storyReaderReport')).toContainText('Detailed source report is currently unavailable');
     await expect(page.locator('#storyReaderReport')).not.toContainText('A single source sentence is available from the live feed.');
     await expect(page.locator('#storyReaderSources a')).toHaveAttribute('href','https://example.com/story');
@@ -92,8 +92,8 @@ test.describe('Story Reader content quality', () => {
     const open=page.locator('[data-open="real-source-e2e"]').first();
     await expect(open).toBeVisible();
     await open.click();
-    await expect(page.locator('#storyReaderReport')).toContainText('double burden', {timeout:30000});
-    await expect(page.locator('#storyReaderReport')).toContainText('national nutrition policy');
+    await expect(page.locator('#storyReaderReport')).toContainText('malnutrition', {timeout:30000});
+    await expect(page.locator('#storyReaderReport')).toContainText('Pacific');
     await expect(page.locator('#storyReaderReport')).not.toContainText('Detailed source report temporarily unavailable');
     await expect(page.locator('#storyReaderReport')).not.toContainText('A live-feed item with a headline and source attribution but no stored article body.');
     await expect(page.locator('#storyReaderSources a')).toHaveAttribute('href',REAL_SOURCE);
