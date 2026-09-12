@@ -3,8 +3,17 @@ const { test, expect } = require('@playwright/test');
 const REAL_SOURCE = 'https://devpolicy.org/malnutrition-pervasive-but-can-be-fixed-20190211/';
 const ET_SOURCE = 'https://economictimes.indiatimes.com/';
 
+async function mockStoryContent(page, resolver) {
+  await page.route('**/api/story-content', async route => {
+    const payload=JSON.parse(route.request().postData()||'{}');
+    const result=typeof resolver==='function' ? resolver(payload.story||{}) : resolver;
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(result)});
+  });
+}
+
 test.describe('Story Reader content quality', () => {
   test('limited-content story never repeats the brief as a fake full report', async ({ page }) => {
+    await mockStoryContent(page, {ok:true,brief:{points:['A single source sentence is available from the live feed.']},report:{paragraphs:[]},source:{publisher:'Example Publisher',title:'Example story with limited publisher text',url:'https://example.com/story'}});
     await page.goto('/');
     await page.evaluate(() => {
       const story={id:'limited-e2e',headline:'Example story with limited publisher text',summary:'A single source sentence is available from the live feed.',body:'',country:'India',verification_status:'developing',source_count:1,sources:[{publisher:'Example Publisher',title:'Example story with limited publisher text',url:'https://example.com/story'}]};
@@ -13,15 +22,13 @@ test.describe('Story Reader content quality', () => {
     });
     await expect(page.locator('#detail')).not.toHaveClass(/hidden/);
     await expect(page.locator('#storyReaderBrief')).toContainText('A single source sentence');
-    await expect(page.locator('#storyReaderReport')).toContainText('Detailed source report temporarily unavailable');
+    await expect(page.locator('#storyReaderReport')).toContainText('Detailed source report is currently unavailable');
     await expect(page.locator('#storyReaderReport')).not.toContainText('A single source sentence is available from the live feed.');
     await expect(page.locator('#storyReaderSources a')).toHaveAttribute('href','https://example.com/story');
   });
 
   test('grounded service response renders 4-6 Story Brief points and distinct Full Report', async ({ page }) => {
-    await page.route('**/*story-brief-v2', async route => {
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({brief:{label:'Source-grounded brief',points:['Confirmed development one from the publisher source.','Confirmed development two with additional context.','Confirmed development three affecting the region.','Confirmed development four with the latest official response.'],coverage:'Grounded in publisher material.'},report:{label:'Source-grounded full report',paragraphs:['Additional context from the publisher that is not repeated in the brief.','Officials described the wider implications and outlined the next steps.','The source reported further developments and noted that more verified information may follow.'],coverage:'Grounded in source material.'},sources:[{publisher:'Example Publisher',title:'Grounded story',url:'https://example.com/grounded'}]})});
-    });
+    await mockStoryContent(page, {ok:true,brief:{label:'Source-grounded brief',points:['Confirmed development one from the publisher source.','Confirmed development two with additional context.','Confirmed development three affecting the region.','Confirmed development four with the latest official response.'],coverage:'Grounded in publisher material.'},report:{label:'Source-grounded full report',paragraphs:['Additional context from the publisher that is not repeated in the brief.','Officials described the wider implications and outlined the next steps.','The source reported further developments and noted that more verified information may follow.'],coverage:'Grounded in source material.'},source:{publisher:'Example Publisher',title:'Grounded story',url:'https://example.com/grounded'}});
     await page.goto('/');
     await page.evaluate(() => {
       const story={id:'grounded-e2e',headline:'Grounded story',summary:'A short source summary.',body:'',country:'Global',verification_status:'verified',source_count:1,sources:[{publisher:'Example Publisher',title:'Grounded story',url:'https://example.com/grounded'}]};
@@ -35,14 +42,7 @@ test.describe('Story Reader content quality', () => {
   });
 
   test('publisher-reader fallback renders a multi-point brief when grounded service is insufficient', async ({ page }) => {
-    await page.route('**/*story-brief-v2', async route => {
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({brief:{points:['Only the live-feed headline summary.']},report:{paragraphs:[]},sources:[{publisher:'The Economic Times',title:'Iran says new sanctions threatened by desperate US will fail',url:ET_SOURCE}]})});
-    });
-    await page.route('**/api/story-content', async route => {
-      const payload=JSON.parse(route.request().postData()||'{}');
-      expect(payload.story.headline).toContain('Iran says new sanctions');
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,brief:{points:['Iran rejected the threat of new US sanctions as a sign of desperation.','Tehran said the expected sanctions would fail to defeat Iran.','Washington is preparing what it describes as its toughest sanctions against Iran.','Iran remains under severe economic pressure from sanctions and wartime damage.','Shipping through the Strait of Hormuz has been heavily disrupted, affecting global oil flows.','Pakistan’s army chief is expected to visit Tehran as part of regional mediation.']},report:{label:'Source-grounded full report',paragraphs:['Iranian officials said Washington should pursue respectful dialogue and a solution based on justice and honour.','The effective disruption in the Strait of Hormuz has pushed global oil prices higher and added pressure to international energy markets.','The report also described continuing military and economic pressure on Iran.']},source:{publisher:'The Economic Times',title:'Iran says new sanctions threatened by desperate US will fail',url:ET_SOURCE}})});
-    });
+    await mockStoryContent(page, {ok:true,brief:{points:['Iran rejected the threat of new US sanctions as a sign of desperation.','Tehran said the expected sanctions would fail to defeat Iran.','Washington is preparing what it describes as its toughest sanctions against Iran.','Iran remains under severe economic pressure from sanctions and wartime damage.','Shipping through the Strait of Hormuz has been heavily disrupted, affecting global oil flows.','Pakistan’s army chief is expected to visit Tehran as part of regional mediation.']},report:{label:'Source-grounded full report',paragraphs:['Iranian officials said Washington should pursue respectful dialogue and a solution based on justice and honour.','The effective disruption in the Strait of Hormuz has pushed global oil prices higher and added pressure to international energy markets.','The report also described continuing military and economic pressure on Iran.']},source:{publisher:'The Economic Times',title:'Iran says new sanctions threatened by desperate US will fail',url:ET_SOURCE}});
     await page.goto('/');
     await page.evaluate(() => {
       const story={id:'publisher-fallback-e2e',headline:'Iran says new sanctions threatened by desperate US will fail',summary:'Iran says new sanctions threatened by desperate US will fail',body:'',country:'Iran',verification_status:'developing',source_count:1,sources:[{publisher:'The Economic Times',title:'Iran says new sanctions threatened by desperate US will fail',url:'https://economictimes.indiatimes.com/news/international/world-news/example'}]};
@@ -55,6 +55,7 @@ test.describe('Story Reader content quality', () => {
   });
 
   test('substantive body produces report detail distinct from the brief', async ({ page }) => {
+    await mockStoryContent(page, story => ({ok:true,brief:{points:['The first confirmed development was reported by the source.','Officials said the situation was being monitored.','A later update was reported by the publisher.','Authorities continued their assessment.']},report:{label:'Source-grounded full report',paragraphs:['A later update added that emergency teams were deployed to assess the impact across several affected areas.','Authorities also asked residents to follow official guidance while investigators gathered more information about the incident and its consequences.','The publisher said further verified updates would be issued as new facts became available from responsible agencies and local officials.']},source:story.sources?.[0]||{}}));
     await page.goto('/');
     await page.evaluate(() => {
       const story={id:'full-e2e',headline:'Example story with substantive source reporting',summary:'The first confirmed development was reported by the source. Officials said the situation was being monitored.',body:'The first confirmed development was reported by the source. Officials said the situation was being monitored. A later update added that emergency teams were deployed to assess the impact across several affected areas. Authorities also asked residents to follow official guidance while investigators gathered more information about the incident and its consequences. The publisher said further verified updates would be issued as new facts became available from responsible agencies and local officials.',country:'Global',verification_status:'verified',source_count:1,sources:[{publisher:'Example Publisher',title:'Example story with substantive source reporting',url:'https://example.com/full'}]};
@@ -67,10 +68,7 @@ test.describe('Story Reader content quality', () => {
 
   test('live-feed architecture sends the complete story payload to the grounded-report endpoint', async ({ page }) => {
     let captured=null;
-    await page.route('**/*story-brief-v2', async route => {
-      captured=JSON.parse(route.request().postData() || '{}');
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({brief:{points:['Confirmed point one with source context.','Confirmed point two with source context.','Confirmed point three with source context.','Confirmed point four with source context.']},report:{label:'Source-grounded report',paragraphs:['The publisher reported a later development involving emergency response teams.','Authorities provided additional verified context and said further updates would follow.','The publisher also reported that additional verified information would be released as officials completed their assessment.'],coverage:'Grounded in source material.'},sources:[{publisher:'Example Publisher',title:'Live feed source story',url:'https://example.com/live'}]})});
-    });
+    await mockStoryContent(page, story => {captured=story;return {ok:true,brief:{points:['Confirmed point one with source context.','Confirmed point two with source context.','Confirmed point three with source context.','Confirmed point four with source context.']},report:{label:'Source-grounded report',paragraphs:['The publisher reported a later development involving emergency response teams.','Authorities provided additional verified context and said further updates would follow.','The publisher also reported that additional verified information would be released as officials completed their assessment.'],coverage:'Grounded in source material.'},source:story.sources?.[0]||{}}});
     await page.goto('/');
     await page.evaluate(() => {
       const story={id:'live-feed-e2e',headline:'Live feed source story',summary:'A short verified source summary.',body:'',country:'Global',verification_status:'developing',source_count:1,sources:[{publisher:'Example Publisher',title:'Live feed source story',url:'https://example.com/live'}]};
@@ -80,9 +78,9 @@ test.describe('Story Reader content quality', () => {
     await expect.poll(()=>captured,{timeout:12000}).not.toBeNull();
     await expect(page.locator('#storyReaderBrief li')).toHaveCount(4);
     await expect(page.locator('#storyReaderReport')).toContainText('later development involving emergency response teams');
-    expect(captured.story_id).toBe('live-feed-e2e');
-    expect(captured.story.sources[0].url).toBe('https://example.com/live');
-    expect(captured.story.headline).toBe('Live feed source story');
+    expect(captured.id).toBe('live-feed-e2e');
+    expect(captured.sources[0].url).toBe('https://example.com/live');
+    expect(captured.headline).toBe('Live feed source story');
   });
 
   test('REAL integration: live-feed story with no body retrieves publisher content into Full Report', async ({ page }) => {
