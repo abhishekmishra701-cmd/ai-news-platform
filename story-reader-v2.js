@@ -5,6 +5,6 @@ window.__GLOBAL_NEWS_STORY_READER_LOADER__=true;
 function load(src){const s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}
 load('./phase6a-runtime.js?v=p1-3');
 load('./i18n-final.js?v=p11-1');
-load('./story-reader-core-v3.js?v=5');
-load('./ui-shell-v2.js?v=14');
+load('./story-reader-core-v3.js?v=6');
+load('./ui-shell-v2.js?v=15');
 })();
