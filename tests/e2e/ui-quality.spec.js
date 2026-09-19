@@ -106,4 +106,32 @@ test.describe('Global News UI quality', () => {
     await expect(page.locator('.story-reader-back')).not.toContainText('Back to stories');
   });
 
+
+  test('language state is single-source-of-truth and switching back to English clears prior translation', async ({ page }) => {
+    await page.goto('/');
+    await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__GLOBAL_NEWS_API_STORIES__)&&window.__GLOBAL_NEWS_API_STORIES__.length),{timeout:30000}).toBeGreaterThan(0);
+    await page.locator('#global-news-language-selector').selectOption('ru');
+    await expect.poll(()=>page.locator('#nav').innerText(),{timeout:30000}).toContain('Главная');
+    await expect(page.locator('#global-news-language-selector')).toHaveValue('ru');
+    await page.locator('#global-news-language-selector').selectOption('en');
+    await expect.poll(()=>page.locator('#nav').innerText(),{timeout:30000}).toContain('Home');
+    await expect(page.locator('#global-news-language-selector')).toHaveValue('en');
+    await expect(page.locator('#nav').innerText()).not.toContain('Главная');
+  });
+
+  test('PM India source article returns source-grounded Story Brief and Full Report', async ({ request }) => {
+    const response=await request.post('/api/story-content',{data:{story:{
+      headline:'PM inaugurates International Conference on “The Future of Environment and Climate Dynamics”',
+      summary:'Prime Minister Narendra Modi inaugurated the international conference in New Delhi.',
+      country:'India',category:'Climate',publisher:'PM India',
+      sources:[{publisher:'PM India',title:'PM inaugurates International Conference on “The Future of Environment and Climate Dynamics”',url:'https://www.pmindia.gov.in/en/news_updates/pm-to-inaugurate-international-conference-on-the-future-of-environment-and-climate-dynamics-on-19-september/'}]
+    }}});
+    expect(response.ok()).toBeTruthy();
+    const body=await response.json();
+    expect(body.retrieval.status).toBe('success');
+    expect(body.brief.points.length).toBeGreaterThanOrEqual(2);
+    expect(body.report.paragraphs.length).toBeGreaterThanOrEqual(2);
+    expect(body.source.publisher).toMatch(/PM India/i);
+  });
+
 });
