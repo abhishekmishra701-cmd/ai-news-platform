@@ -49,16 +49,33 @@ const key=CACHE+to+':'+src;try{const hit=localStorage.getItem(key);if(hit)return
 try{const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:src,to}),cache:'no-store'});if(r.ok){const j=await r.json(),v=clean(j?.text);if(v&&v!==src){try{localStorage.setItem(key,v)}catch(_){}return v}}}catch(_){}
 return src;
 }
+async function translateBatch(items,to){
+const out=new Map(),pending=[];
+for(const src of items){const d={...(STATIC[to]||{}),...(EXTRA_STATIC[to]||{})},p=pattern(src,to),key=CACHE+to+':'+src;if(d[src]){out.set(src,d[src]);continue}if(p){out.set(src,p);continue}try{const hit=localStorage.getItem(key);if(hit){out.set(src,hit);continue}}catch(_){}pending.push(src)}
+if(!pending.length)return out;
+for(let start=0;start<pending.length;start+=8){
+const part=[];let chars=0;
+for(let i=start;i<pending.length&&part.length<8;i++){const n=pending[i];if(chars+n.length>4500&&part.length)break;part.push(n);chars+=n.length}
+const marker='\\uE000';
+try{
+const payload=part.join(marker);
+const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:payload,to}),cache:'no-store'});
+if(r.ok){const j=await r.json(),raw=String(j?.text||''),vals=raw.split(marker).map(clean);if(vals.length===part.length){part.forEach((src,i)=>{const v=vals[i]||src;out.set(src,v);if(v&&v!==src)try{localStorage.setItem(CACHE+to+':'+src,v)}catch(_){} });continue}}
+}catch(_){}
+for(const src of part){const v=await translate(src,to);out.set(src,v)}
+}
+return out;
+}
 let applying=false,scheduled=0,run=0,suppressUntil=0;
 async function apply(){
 if(applying)return;applying=true;const id=++run,to=lang();try{
 document.documentElement.lang=to;document.documentElement.dir=RTL.has(to)?'rtl':'ltr';
 const list=nodes();
 if(to==='en'){restore();return}
-for(let i=0;i<list.length;i+=6){
-if(id!==run||lang()!==to)break;
-await Promise.all(list.slice(i,i+6).map(async el=>{const src=el.dataset.gnUnifiedOriginal||original(el);if(!shouldTranslate(src,el))return;const v=await translate(src,to);if(id===run&&lang()===to&&el.isConnected&&v)el.textContent=v}));
-}
+const dynamic=list.map(el=>({el,src:el.dataset.gnUnifiedOriginal||original(el)})).filter(x=>shouldTranslate(x.src,x.el));
+const translated=await translateBatch([...new Set(dynamic.map(x=>x.src))],to);
+if(id!==run||lang()!==to)return;
+for(const {el,src} of dynamic){const v=translated.get(src);if(el.isConnected&&v)el.textContent=v}
 for(const sel of ['#q','#countrySearch']){const e=document.querySelector(sel);if(e){const src=phOriginal(e);const v={...(STATIC[to]||{}),...(EXTRA_STATIC[to]||{})}[src]||await translate(src,to);if(v)e.placeholder=v}}
 }catch(_){ }finally{applying=false;suppressUntil=Date.now()+350}
 }
