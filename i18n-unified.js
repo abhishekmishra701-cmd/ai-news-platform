@@ -32,7 +32,7 @@ m=text.match(/^Live news · (\\d[\\d,]*) stories available$/i);if(m){const n=m[1
 m=text.match(/^(\\d[\\d,]*) stories$/i);if(m){const n=m[1];if(to==='hi')return n+' खबरें';if(to==='es')return n+' noticias';if(to==='fr')return n+' actualités';if(to==='zh')return n+' 条新闻';if(to==='ur')return n+' خبریں'}
 m=text.match(/^(.+?) Stories$/);if(m){const n=m[1];if(to==='hi')return n==='Top'?'शीर्ष खबरें':n+' की खबरें';if(to==='es')return 'Noticias de '+n;if(to==='fr')return 'Actualités de '+n;if(to==='zh')return n+'新闻';if(to==='ur')return n+' کی خبریں'}
 try{const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,to}),cache:'no-store'});if(r.ok){const j=await r.json(),v=clean(j?.text);if(v&&v!==text)return v}}catch(_){}return text}
-let applying=false,scheduled=0,runId=0;
+let applying=false,scheduled=0,runId=0,suppressUntil=0;
 async function apply(){
 if(applying)return;
 applying=true;const id=++runId,to=lang(),d=STATIC[to]||{};
@@ -46,7 +46,7 @@ await Promise.all(list.slice(i,i+3).map(async el=>{const src=el.dataset.gnUnifie
 }
 const q=document.querySelector('#q');if(q){const src=placeholderOriginal(q);q.placeholder=d[src]||await translate(src,to)}
 const c=document.querySelector('#countrySearch');if(c){const src=placeholderOriginal(c);c.placeholder=d[src]||await translate(src,to)}
-}finally{applying=false}
+}finally{applying=false;suppressUntil=Date.now()+800}
 }
 function schedule(ms=100){clearTimeout(scheduled);scheduled=setTimeout(()=>apply(),ms)}
 function start(){
@@ -55,7 +55,7 @@ window.addEventListener('global-news-language-change',()=>{runId++;schedule(0)})
 window.addEventListener('global-news-home-rendered',()=>schedule(0));
 window.addEventListener('global-news-story-content-rendered',()=>schedule(80));
 window.addEventListener('global-news-sidebar-rendered',()=>schedule(80));
-new MutationObserver(ms=>{if(applying)return;if(ms.some(m=>m.type==='childList'&&m.addedNodes.length))schedule(120)}).observe(document.body,{childList:true,subtree:true});
+new MutationObserver(ms=>{if(applying||Date.now()<suppressUntil)return;if(ms.some(m=>m.type==='childList'&&m.addedNodes.length))schedule(120)}).observe(document.body,{childList:true,subtree:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
