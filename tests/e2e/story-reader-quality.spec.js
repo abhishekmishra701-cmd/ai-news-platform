@@ -114,7 +114,7 @@ test.describe('Story Reader content quality', () => {
     expect(result.data.report.paragraphs.join(' ')).toContain('Pacific');
     expect(result.data.report.paragraphs.join(' ')).not.toContain(result.data.brief.points[0]);
     expect(result.data.retrieval.status).toBe('success');
-    expect(result.data.brief.points.join(' ')).not.toMatch(/https?:\\/\\/|\\]\\(/i);
+    expect(result.data.brief.points.join(' ')).not.toMatch(/https?:\/\/|\]\(/i);
     expect(result.data.brief.points.join(' ')).not.toMatch(/Live TV|Follow Us On|Subscribe/i);
   });
 });
