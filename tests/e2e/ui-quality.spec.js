@@ -52,5 +52,14 @@ test.describe('Global News UI quality', () => {
     await expect.poll(()=>page.locator('.card h3').first().innerText(),{timeout:20000}).not.toBe(cardEnglish);
     await expect(page.locator('#listTitle')).toContainText('शीर्ष');
     await expect(page.locator('.country-picker label')).toHaveText('देश');
+    const hindiHero=await page.locator('.hero h1').innerText();
+    const hindiCard=await page.locator('.card h3').first().innerText();
+    expect(hindiHero).not.toBe(heroEnglish);
+    expect(hindiCard).not.toBe(cardEnglish);
+    await page.reload();
+    await expect(page.locator('.hero h1')).toBeVisible({timeout:20000});
+    await expect.poll(()=>page.locator('.hero h1').innerText(),{timeout:20000}).not.toBe(heroEnglish);
+    await expect.poll(()=>page.locator('.card h3').first().innerText(),{timeout:20000}).not.toBe(cardEnglish);
+    await expect(page.locator('#global-news-language-selector')).toHaveValue('hi');
   });
 });
