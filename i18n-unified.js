@@ -28,7 +28,7 @@ const canonicalKeys=['Home','🇮🇳 India','IN India','India','World','Geopoli
 const reverseLabel=new Map();canonicalKeys.forEach(k=>reverseLabel.set(clean(k),k));Object.values(STATIC).forEach(d=>Object.entries(d).forEach(([k,v])=>reverseLabel.set(clean(v),k)));
 function canonical(el){if(!el)return '';if(el.id==='q')return 'Search global stories, topics, countries or sources…';if(el.id==='countrySearch')return 'Search or select country…';if(el.dataset.gnBaseOriginal!==undefined)return el.dataset.gnBaseOriginal;if(el.dataset.gnFinalOriginal!==undefined)return el.dataset.gnFinalOriginal;if(el.dataset.gnUnifiedCanonical!==undefined)return el.dataset.gnUnifiedCanonical;const v=clean(el.textContent),key=reverseLabel.get(v)||v;el.dataset.gnBaseOriginal=key;el.dataset.gnUnifiedCanonical=key;return key}
 function original(el){if(!el)return '';if(el.dataset.gnBaseOriginal===undefined)el.dataset.gnBaseOriginal=canonical(el);el.dataset.gnUnifiedOriginal=el.dataset.gnBaseOriginal;return el.dataset.gnBaseOriginal}
-function phOriginal(el){if(!el)return '';if(el.id==='q')return 'Search global stories, topics, countries or sources…';if(el.id==='countrySearch')return 'Search or select country…';if(el.dataset.gnUnifiedPlaceholder!==undefined)return el.dataset.gnUnifiedPlaceholder;const v=el.getAttribute('placeholder')||'';el.dataset.gnUnifiedPlaceholder=v;return v}
+function phOriginal(el){if(!el)return '';if(el.id==='q')return 'Search global stories, topics, countries or sources…';if(el.id==='countrySearch')return 'Search or select country…';return el.dataset.gnUnifiedPlaceholder||el.getAttribute('placeholder')||''}
 function nodes(){const out=[];for(const s of selectors)for(const el of document.querySelectorAll(s)){if(!el.isConnected||el.closest('.ai-langs')||el.closest('.story-reader-source a'))continue;original(el);out.push(el)}
 const roots=[document.querySelector('#detail'),...document.querySelectorAll('.ai-sidebar,.ai-side-card')].filter(Boolean);
 for(const root of roots){for(const el of root.querySelectorAll('*')){if(!el.isConnected||el.closest('.ai-langs')||el.closest('a')||/^(SCRIPT|STYLE|SELECT|OPTION|INPUT|TEXTAREA|BUTTON)$/.test(el.tagName))continue;const txt=clean(el.textContent);if(!txt||txt.length>12000)continue;const hasElement=el.children&&el.children.length>0;if(!hasElement){original(el);out.push(el)}}}
@@ -74,8 +74,9 @@ for(const sel of ['#q','#countrySearch']){const e=document.querySelector(sel);if
 }
 function schedule(ms=60){clearTimeout(scheduled);scheduled=setTimeout(apply,ms)}
 window.__GLOBAL_NEWS_TRANSLATE_NOW__=()=>schedule(0);
+function normalizePlaceholders(){const q=document.querySelector('#q'),c=document.querySelector('#countrySearch');if(q){q.dataset.gnUnifiedPlaceholder='Search global stories, topics, countries or sources…';q.placeholder='Search global stories, topics, countries or sources…'}if(c){c.dataset.gnUnifiedPlaceholder='Search or select country…';c.placeholder='Search or select country…'}}
 function start(){
-try{if(!sessionStorage.getItem(BOOT)){sessionStorage.setItem(BOOT,'1');location.reload();return}}catch(_){}
+normalizePlaceholders();
 schedule(0);
 window.addEventListener('global-news-language-change',()=>{run++;schedule(0)});
 window.addEventListener('global-news-home-rendered',()=>schedule(20));
