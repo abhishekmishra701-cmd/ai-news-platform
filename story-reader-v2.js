@@ -6,5 +6,4 @@ function load(src){const s=document.createElement('script');s.src=src;s.async=fa
 load('./phase6a-runtime.js?v=p1-6');
 load('./story-reader-core-v3.js?v=6');
 load('./ui-shell-v2.js?v=15');
-load('./story-reader-i18n-bridge.js?v=2');
 })();
