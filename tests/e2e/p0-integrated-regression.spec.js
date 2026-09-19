@@ -16,6 +16,7 @@ test.describe('Phase 6A P0 integrated regression', () => {
 
   test('category tabs switch the authoritative in-memory API feed', async ({ page }) => {
     await page.goto('/');
+    await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__GLOBAL_NEWS_API_STORIES__)&&window.__GLOBAL_NEWS_API_STORIES__.length),{timeout:30000}).toBeGreaterThan(0);
     await expect(page.locator('#grid')).toBeVisible();
     await page.locator('[data-cat="Geopolitics"]').click();
     await expect(page.locator('#listTitle')).toContainText('Geopolitics');
