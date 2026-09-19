@@ -88,4 +88,22 @@ test.describe('Global News UI quality', () => {
     await expect(page.locator('#countrySearch')).not.toHaveAttribute('placeholder',/[㐀-鿿]/);
   });
 
+
+  test('French selection stays French across homepage and Story Reader without Chinese/English leakage', async ({ page }) => {
+    await page.goto('/');
+    await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__GLOBAL_NEWS_API_STORIES__)&&window.__GLOBAL_NEWS_API_STORIES__.length),{timeout:30000}).toBeGreaterThan(0);
+    await page.locator('#global-news-language-selector').selectOption('fr');
+    await expect.poll(()=>page.locator('#q').getAttribute('placeholder'),{timeout:30000}).toBe('Rechercher des actualités, sujets, pays ou sources…');
+    await expect(page.locator('#q')).not.toHaveAttribute('placeholder',/[㐀-鿿]/);
+    const open=page.locator('[data-open]').first();
+    await expect(open).toBeVisible();
+    await open.click();
+    await expect(page.locator('#detail')).not.toHaveClass(/hidden/);
+    await expect.poll(()=>page.locator('.story-reader-back').innerText(),{timeout:30000}).toContain('Retour');
+    await expect.poll(()=>page.locator('.story-reader-section h2').first().innerText(),{timeout:30000}).toContain('Résumé');
+    await expect.poll(()=>page.locator('.ai-side-card h3').first().innerText(),{timeout:30000}).toContain('Articles connexes');
+    await expect(page.locator('.ai-side-card h3').first()).not.toContainText('Related');
+    await expect(page.locator('.story-reader-back')).not.toContainText('Back to stories');
+  });
+
 });
