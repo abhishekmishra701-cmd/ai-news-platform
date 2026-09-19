@@ -15,6 +15,7 @@ test.describe('category quality', () => {
   for (const [category, signal] of cases) {
     test(`${category} stories are category-relevant and attributed`, async ({ page }) => {
       await page.goto('/');
+      await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__GLOBAL_NEWS_API_STORIES__)&&window.__GLOBAL_NEWS_API_STORIES__.length),{timeout:30000}).toBeGreaterThan(0);
 
       const tab = page.locator('[data-cat="' + category + '"]');
       await expect(tab).toBeVisible();
