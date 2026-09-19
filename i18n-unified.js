@@ -56,7 +56,7 @@ if(!pending.length)return out;
 for(let start=0;start<pending.length;start+=8){
 const part=[];let chars=0;
 for(let i=start;i<pending.length&&part.length<8;i++){const n=pending[i];if(chars+n.length>4500&&part.length)break;part.push(n);chars+=n.length}
-const marker='\\uE000';
+const marker='\uE000';
 try{
 const payload=part.join(marker);
 const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:payload,to}),cache:'no-store'});
