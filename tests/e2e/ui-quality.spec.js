@@ -134,4 +134,28 @@ test.describe('Global News UI quality', () => {
     expect(body.source.publisher).toMatch(/PM India/i);
   });
 
+
+  test('translation API returns real target-language text', async ({ request }) => {
+    const response = await request.post('/api/translate', {
+      data: { text: 'Pune Businessman Fakes Immigration Issue To Hide Trip With Woman From Wife', to: 'fr' }
+    });
+    expect(response.ok()).toBeTruthy();
+    const body = await response.json();
+    expect(body.text).toBeTruthy();
+    expect(body.text).not.toContain('Pune Businessman Fakes Immigration Issue');
+    expect(body.text).toMatch(/[À-ÿA-Za-z]/);
+  });
+
+  test('switching Hindi to French never leaves translated homepage content in the previous language', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.hero h1')).toBeVisible({timeout:30000});
+    const english = await page.locator('.hero h1').innerText();
+    await page.locator('#global-news-language-selector').selectOption('hi');
+    await expect.poll(()=>page.locator('.hero h1').innerText(),{timeout:30000}).not.toBe(english);
+    await page.locator('#global-news-language-selector').selectOption('fr');
+    await expect.poll(()=>page.locator('#q').getAttribute('placeholder'),{timeout:30000}).toBe('Rechercher des actualités, sujets, pays ou sources…');
+    await expect.poll(()=>page.locator('.hero h1').innerText(),{timeout:30000}).not.toBe(english);
+    await expect(page.locator('.hero h1')).not.toContainText(/[अ-ह]/);
+  });
+
 });
