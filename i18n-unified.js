@@ -1,6 +1,6 @@
 (()=>{'use strict';
 if(window.__GLOBAL_NEWS_I18N_UNIFIED__)return;window.__GLOBAL_NEWS_I18N_UNIFIED__=true;
-const KEY='globalNewsLanguage',CACHE='gn-unified-i18n-v5:',BOOT='gn-i18n-bootstrap-v5',RTL=new Set(['ar','ur','fa']);
+const KEY='globalNewsLanguage',CACHE='gn-unified-i18n-v6:',BOOT='gn-i18n-bootstrap-v5',RTL=new Set(['ar','ur','fa']);
 const SUPPORTED=new Set(['en','zh','hi','es','fr','ar','bn','pt','ru','ur','id','de','ja','mr','te','tr','ta','vi','ko','it','fa']);
 const STATIC={
 hi:{Home:'होम','🇮🇳 India':'भारत','IN India':'भारत',India:'भारत',World:'विश्व',Geopolitics:'भू-राजनीति','International Relations':'अंतरराष्ट्रीय संबंध',Business:'व्यवसाय',Technology:'प्रौद्योगिकी',Entertainment:'मनोरंजन',Sports:'खेल',Science:'विज्ञान',Climate:'जलवायु',Search:'खोजें','← Back to stories':'← खबरों पर वापस','Read full story →':'पूरी खबर पढ़ें →','Back to stories':'खबरों पर वापस','Story Brief':'संक्षिप्त विवरण','Full Report':'विस्तृत रिपोर्ट','Sources & attribution':'स्रोत और श्रेय','Related Stories':'संबंधित खबरें','Translate this story':'इस खबर का अनुवाद करें','Most Spoken Languages in the World':'दुनिया में सबसे अधिक बोली जाने वाली भाषाएँ','Explore Worldwide Regions & countries':'दुनिया भर के क्षेत्र और देश','Explore Worldwide':'दुनिया भर में देखें','Regions & countries':'क्षेत्र और देश',Country:'देश','Search global stories, topics, countries or sources…':'वैश्विक खबरें, विषय, देश या स्रोत खोजें…','Search or select country…':'देश खोजें या चुनें…','Top Stories · Worldwide':'शीर्ष खबरें · विश्वभर','Live news':'लाइव खबरें','Fact-checked':'तथ्य-जाँचा हुआ','Unbiased Reporting':'निष्पक्ष रिपोर्टिंग','Updated Regularly':'नियमित रूप से अपडेट','Powered by AI · Translations may not be 100% accurate.':'AI द्वारा संचालित · अनुवाद 100% सटीक न हो सकते हैं।','Story Brief is limited for this source.':'इस स्रोत के लिए संक्षिप्त विवरण सीमित है।','Detailed source report is currently unavailable.':'विस्तृत स्रोत रिपोर्ट फिलहाल उपलब्ध नहीं है।','Open original source ↗':'मूल स्रोत खोलें ↗','Global News aims to deliver accurate, unbiased, and source-attributed global news.':'Global News का उद्देश्य सटीक, निष्पक्ष और स्रोत-आधारित वैश्विक समाचार प्रदान करना है।','UNVERIFIED':'अप्रमाणित','VERIFIED':'सत्यापित','DEVELOPING':'विकासशील','No closely related stories found yet.':'अभी कोई निकटता से संबंधित खबर नहीं मिली।','API connected':'API जुड़ा हुआ है'},
@@ -52,17 +52,10 @@ return src;
 async function translateBatch(items,to){
 const out=new Map(),pending=[];
 for(const src of items){const d={...(STATIC[to]||{}),...(EXTRA_STATIC[to]||{})},p=pattern(src,to),key=CACHE+to+':'+src;if(d[src]){out.set(src,d[src]);continue}if(p){out.set(src,p);continue}try{const hit=localStorage.getItem(key);if(hit){out.set(src,hit);continue}}catch(_){}pending.push(src)}
-if(!pending.length)return out;
-for(let start=0;start<pending.length;start+=8){
-const part=[];let chars=0;
-for(let i=start;i<pending.length&&part.length<8;i++){const n=pending[i];if(chars+n.length>4500&&part.length)break;part.push(n);chars+=n.length}
-const marker='\uE000';
-try{
-const payload=part.join(marker);
-const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:payload,to}),cache:'no-store'});
-if(r.ok){const j=await r.json(),raw=String(j?.text||''),vals=raw.split(marker).map(clean);if(vals.length===part.length){part.forEach((src,i)=>{const v=vals[i]||src;out.set(src,v);if(v&&v!==src)try{localStorage.setItem(CACHE+to+':'+src,v)}catch(_){} });continue}}
-}catch(_){}
-for(const src of part){const v=await translate(src,to);out.set(src,v)}
+for(let start=0;start<pending.length;start+=3){
+const part=pending.slice(start,start+3);
+const vals=await Promise.all(part.map(src=>translate(src,to)));
+part.forEach((src,i)=>out.set(src,vals[i]||src));
 }
 return out;
 }
