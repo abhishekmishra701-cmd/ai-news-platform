@@ -62,4 +62,30 @@ test.describe('Global News UI quality', () => {
     await expect.poll(()=>page.locator('.card h3').first().innerText(),{timeout:20000}).not.toBe(cardEnglish);
     await expect(page.locator('#global-news-language-selector')).toHaveValue('hi');
   });
+
+
+  test('story reader translates shell, sidebar, and source-grounded article content together', async ({ page }) => {
+    await page.goto('/');
+    await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__GLOBAL_NEWS_API_STORIES__)&&window.__GLOBAL_NEWS_API_STORIES__.length),{timeout:30000}).toBeGreaterThan(0);
+    const open=page.locator('[data-open]').first();
+    await expect(open).toBeVisible();
+    await open.click();
+    await expect(page.locator('#detail')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#storyReaderBrief')).toBeVisible({timeout:30000});
+    const englishTitle=await page.locator('.story-reader-head h1').innerText();
+    await page.locator('#aiStoryLanguage').selectOption('hi');
+    await expect.poll(()=>page.locator('.story-reader-back').innerText(),{timeout:30000}).toContain('खबरों');
+    await expect.poll(()=>page.locator('.story-reader-section h2').first().innerText(),{timeout:30000}).toContain('संक्षिप्त');
+    await expect.poll(()=>page.locator('.ai-side-card h3').first().innerText(),{timeout:30000}).toContain('संबंधित');
+    await expect.poll(()=>page.locator('.story-reader-head h1').innerText(),{timeout:30000}).not.toBe(englishTitle);
+  });
+
+  test('language translation does not return cross-language placeholder text', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#global-news-language-selector')).toBeVisible();
+    await page.locator('#global-news-language-selector').selectOption('fr');
+    await expect.poll(()=>page.locator('#countrySearch').getAttribute('placeholder'),{timeout:30000}).toMatch(/[A-Za-zÀ-ÿ]/);
+    await expect(page.locator('#countrySearch')).not.toHaveAttribute('placeholder',/[㐀-鿿]/);
+  });
+
 });
