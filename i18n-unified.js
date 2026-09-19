@@ -59,6 +59,7 @@ for(const sel of ['#q','#countrySearch']){const e=document.querySelector(sel);if
 }catch(_){ }finally{applying=false;suppressUntil=Date.now()+350}
 }
 function schedule(ms=60){clearTimeout(scheduled);scheduled=setTimeout(apply,ms)}
+window.__GLOBAL_NEWS_TRANSLATE_NOW__=()=>schedule(0);
 function start(){
 schedule(0);
 window.addEventListener('global-news-language-change',()=>{run++;schedule(0)});
