@@ -10,8 +10,8 @@ function style(){if(document.getElementById('p6'))return;const s=document.create
 function sync(v=lang()){document.documentElement.lang=v;document.documentElement.dir=dir(v);const a=document.getElementById('global-news-language-selector'),b=document.getElementById('aiStoryLanguage');if(a&&a.value!==v)a.value=v;if(b&&b.value!==v)b.value=v}
 function set(v,emit=true){if(!labels[v])v='en';localStorage.setItem(KEY,v);sync(v);if(emit)window.dispatchEvent(new CustomEvent('global-news-language-change',{detail:{language:v}}))}
 function select(){let e=document.getElementById('global-news-language-selector');if(!e){const top=document.querySelector('.top .bar');if(!top)return;e=document.createElement('select');e.id='global-news-language-selector';e.className='phase6a-language';e.setAttribute('aria-label','Language');e.innerHTML=ORDER.map(k=>'<option value="'+k+'">'+esc(labels[k])+'</option>').join('');e.onchange=()=>set(e.value,true);top.appendChild(e)}sync()}
-function load(src){const s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}
-function bootTranslation(){if(window.__GLOBAL_NEWS_I18N_BOOT__)return;window.__GLOBAL_NEWS_I18N_BOOT__=true;load('./i18n-unified.js?v=7')}
+function load(src,done){const s=document.createElement('script');s.src=src;s.async=false;if(done)s.onload=done;document.head.appendChild(s)}
+function bootTranslation(){if(window.__GLOBAL_NEWS_I18N_READY__){window.dispatchEvent(new CustomEvent('global-news-i18n-ready'));return}if(window.__GLOBAL_NEWS_I18N_BOOT__)return;window.__GLOBAL_NEWS_I18N_BOOT__=true;load('./i18n-unified.js?v=8',()=>{window.__GLOBAL_NEWS_I18N_READY__=true;window.dispatchEvent(new CustomEvent('global-news-i18n-ready'))})}
 function start(){style();select();sync();bootTranslation();new MutationObserver(()=>{select();sync()}).observe(document.body,{childList:true,subtree:true});window.addEventListener('global-news-language-change',e=>sync(e?.detail?.language||lang()));window.addEventListener('storage',e=>{if(e.key===KEY)sync()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
