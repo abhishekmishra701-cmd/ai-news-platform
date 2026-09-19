@@ -1,6 +1,6 @@
 (()=>{'use strict';
 if(window.__GLOBAL_NEWS_I18N_UNIFIED__)return;window.__GLOBAL_NEWS_I18N_UNIFIED__=true;
-const KEY='globalNewsLanguage',CACHE='gn-unified-i18n-v3:',RTL=new Set(['ar','ur','fa']);
+const KEY='globalNewsLanguage',CACHE='gn-unified-i18n-v4:',RTL=new Set(['ar','ur','fa']);
 const SUPPORTED=new Set(['en','zh','hi','es','fr','ar','bn','pt','ru','ur','id','de','ja','mr','te','tr','ta','vi','ko','it','fa']);
 const STATIC={
 hi:{Home:'होम','🇮🇳 India':'भारत','IN India':'भारत',India:'भारत',World:'विश्व',Geopolitics:'भू-राजनीति','International Relations':'अंतरराष्ट्रीय संबंध',Business:'व्यवसाय',Technology:'प्रौद्योगिकी',Entertainment:'मनोरंजन',Sports:'खेल',Science:'विज्ञान',Climate:'जलवायु',Search:'खोजें','Read full story →':'पूरी खबर पढ़ें →','Back to stories':'खबरों पर वापस','Story Brief':'संक्षिप्त विवरण','Full Report':'विस्तृत रिपोर्ट','Sources & attribution':'स्रोत और श्रेय','Related Stories':'संबंधित खबरें','Translate this story':'इस खबर का अनुवाद करें','Most Spoken Languages in the World':'दुनिया में सबसे अधिक बोली जाने वाली भाषाएँ','Explore Worldwide Regions & countries':'दुनिया भर के क्षेत्र और देश','Explore Worldwide':'दुनिया भर में देखें','Regions & countries':'क्षेत्र और देश',Country:'देश','Top Stories · Worldwide':'शीर्ष खबरें · विश्वभर','Live news':'लाइव खबरें','Fact-checked':'तथ्य-जाँचा हुआ','Unbiased Reporting':'निष्पक्ष रिपोर्टिंग','Updated Regularly':'नियमित रूप से अपडेट','Powered by AI · Translations may not be 100% accurate.':'AI द्वारा संचालित · अनुवाद 100% सटीक न हो सकते हैं।','Story Brief is limited for this source.':'इस स्रोत के लिए संक्षिप्त विवरण सीमित है।','Detailed source report is currently unavailable.':'विस्तृत स्रोत रिपोर्ट फिलहाल उपलब्ध नहीं है।','Open original source ↗':'मूल स्रोत खोलें ↗','Global News aims to deliver accurate, unbiased, and source-attributed global news.':'Global News का उद्देश्य सटीक, निष्पक्ष और स्रोत-आधारित वैश्विक समाचार प्रदान करना है।','UNVERIFIED':'अप्रमाणित','VERIFIED':'सत्यापित','DEVELOPING':'विकासशील','No closely related stories found yet.':'अभी कोई निकटता से संबंधित खबर नहीं मिली।','API connected':'API जुड़ा हुआ है'},
@@ -12,8 +12,6 @@ ur:{Home:'ہوم','🇮🇳 India':'بھارت','IN India':'بھارت',India:'�
 const lang=()=>{const v=localStorage.getItem(KEY)||'en';return SUPPORTED.has(v)?v:'en'};
 const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
 const remember=(el,attr,value)=>{if(el.dataset[attr]===undefined)el.dataset[attr]=value};
-const original=el=>{if(!el)return '';if(el.dataset.gnUnifiedOriginal!==undefined)return el.dataset.gnUnifiedOriginal;const v=clean(el.textContent);remember(el,'gnUnifiedOriginal',v);return v};
-const phOriginal=el=>{if(!el)return '';if(el.dataset.gnUnifiedPlaceholder!==undefined)return el.dataset.gnUnifiedPlaceholder;const v=el.getAttribute('placeholder')||'';remember(el,'gnUnifiedPlaceholder',v);return v};
 const selectors=[
 '#nav button','.state','.notice','.hero h1','.hero p','.hero .read','.hero .badge','.hero .pill','.hero .country-tag',
 '.sectionhead h2','.count','.card h3','.card p','.card .read','.card .badge','.card .pill','.card .country-tag',
@@ -23,10 +21,12 @@ const selectors=[
 '#storyReaderReport p','#storyReaderReport .story-reader-label','#storyReaderReport .story-reader-note','#storyReaderReport .story-reader-limited','#storyReaderReport .story-reader-error',
 '.story-reader-source .story-source-title','.ai-story-meta span',
 '.ai-sidebar .side-title','.ai-sidebar .side-meta','.ai-sidebar .ai-translate-note','.ai-sidebar .ai-trust','.ai-sidebar .ai-footer-strip span',
-'.ai-footer-strip span','.ai-side-card h3'
+'.ai-footer-strip span','.ai-side-card h3','.story-reader-loading-box'
 ];
-function nearViewport(el){const r=el.getBoundingClientRect();return r.bottom>=-500&&r.top<=window.innerHeight+700}
-function nodes(){const out=[];for(const s of selectors)for(const el of document.querySelectorAll(s)){if(!el.isConnected||el.closest('.ai-langs')||el.closest('.story-reader-source a'))continue;const dynamic=!!el.closest('.card,.story-reader-card,.ai-sidebar');if(dynamic&&!nearViewport(el))continue;original(el);out.push(el)}return [...new Set(out)]}
+function canonical(el){if(!el)return '';if(el.id==='q')return 'Search global stories, topics, countries or sources…';if(el.id==='countrySearch')return 'Search or select country…';if(el.dataset.gnFinalOriginal!==undefined)return clean(el.dataset.gnFinalOriginal);if(el.dataset.gnUnifiedCanonical!==undefined)return el.dataset.gnUnifiedCanonical;const v=clean(el.textContent);el.dataset.gnUnifiedCanonical=v;return v}
+function original(el){if(!el)return '';if(el.dataset.gnUnifiedOriginal!==undefined)return el.dataset.gnUnifiedOriginal;const v=canonical(el);el.dataset.gnUnifiedOriginal=v;return v}
+function phOriginal(el){if(!el)return '';if(el.id==='q')return 'Search global stories, topics, countries or sources…';if(el.id==='countrySearch')return 'Search or select country…';if(el.dataset.gnUnifiedPlaceholder!==undefined)return el.dataset.gnUnifiedPlaceholder;const v=el.getAttribute('placeholder')||'';el.dataset.gnUnifiedPlaceholder=v;return v}
+function nodes(){const out=[];for(const s of selectors)for(const el of document.querySelectorAll(s)){if(!el.isConnected||el.closest('.ai-langs')||el.closest('.story-reader-source a'))continue;original(el);out.push(el)}return [...new Set(out)]}
 function restore(){for(const el of nodes())el.textContent=el.dataset.gnUnifiedOriginal;for(const sel of ['#q','#countrySearch']){const e=document.querySelector(sel);if(e&&e.dataset.gnUnifiedPlaceholder!==undefined)e.placeholder=e.dataset.gnUnifiedPlaceholder}}
 function pattern(text,to){
 let m=text.match(/^(\d[\d,]*)\s+sources?$/i);if(m){const n=m[1];if(to==='hi')return n+' स्रोत';if(to==='es')return n+' fuentes';if(to==='fr')return n+' sources';if(to==='zh')return n+' 个来源';if(to==='ur')return n+' ذرائع'}
@@ -64,6 +64,7 @@ window.addEventListener('global-news-home-rendered',()=>schedule(20));
 window.addEventListener('global-news-story-content-rendered',()=>schedule(20));
 window.addEventListener('global-news-sidebar-rendered',()=>schedule(20));
 window.addEventListener('scroll',()=>schedule(80),{passive:true});
+window.addEventListener('global-news-home-rendered',()=>schedule(30));
 new MutationObserver(ms=>{if(applying||Date.now()<suppressUntil)return;if(ms.some(m=>m.type==='childList'&&m.addedNodes.length))schedule(70)}).observe(document.body,{childList:true,subtree:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
