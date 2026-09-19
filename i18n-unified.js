@@ -52,8 +52,8 @@ return src;
 async function translateBatch(items,to){
 const out=new Map(),pending=[];
 for(const src of items){const d={...(STATIC[to]||{}),...(EXTRA_STATIC[to]||{})},p=pattern(src,to),key=CACHE+to+':'+src;if(d[src]){out.set(src,d[src]);continue}if(p){out.set(src,p);continue}try{const hit=localStorage.getItem(key);if(hit){out.set(src,hit);continue}}catch(_){}pending.push(src)}
-for(let start=0;start<pending.length;start+=3){
-const part=pending.slice(start,start+3);
+for(let start=0;start<pending.length;start+=2){
+const part=pending.slice(start,start+2);
 const vals=await Promise.all(part.map(src=>translate(src,to)));
 part.forEach((src,i)=>out.set(src,vals[i]||src));
 }
